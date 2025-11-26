@@ -12,9 +12,15 @@ const COLOR_CHOICES: PackedColorArray = [Color.AQUA, Color.BLUE, Color.BROWN, Co
 func _ready() -> void:
 	_rng.randomize()
 
-
 func _physics_process(delta: float) -> void:
 	time_elapsed += delta
+
+func get_team_color(team_key: String) -> Color:
+	if team_colors.has(team_key):
+		return team_colors[team_key]
+	var color: Color = _select_team_color()
+	team_colors[team_key] = color
+	return color
 
 func _select_team_color() -> Color:
 	var i: float = _rng.randf()

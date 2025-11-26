@@ -227,6 +227,58 @@ func _scan_building_regions(rows: PackedStringArray) -> Array:
 				regions.append(region)
 	return regions
 	
+func clear_impassable_in_rect(origin: Vector2i, size: Vector2i, new_type: String = "grassland") -> void:
+	if not TERRAIN_TYPES.has(new_type):
+		return
+	var x_end: int = origin.x + size.x
+	var y_end: int = origin.y + size.y
+	for y in range(origin.y, y_end):
+		if y < 0 or y >= _rows:
+			continue
+		for x in range(origin.x, x_end):
+			if x < 0 or x >= _cols:
+				continue
+			_grid[y][x] = _make_cell(new_type)
+	_rebuild_blockers()
+	queue_redraw()
+	#_notify_tiles_changed(origin)
+	
+func tiles_to_world_rect(origin: Vector2i, size: Vector2i) -> Rect2:
+	var top_left: Vector2 = global_position + Vector2(origin.x * tile_size, origin.y * tile_size)
+	var rect_size: Vector2 = Vector2(size.x * tile_size, size.y * tile_size)
+	return Rect2(top_left, rect_size)
+	
+func register_building(node: Node, origin_tile: Vector2i, footprint: Vector2i) -> void:
+	if node == null or not is_instance_valid(node):
+		return
+	if footprint.x <= 0 or footprint.y <= 0:
+		return
+	if _building_rects.has(node.get_instance_id()):
+		unregister_building(node)
+	var rect: Rect2i = Rect2i(origin_tile, footprint)
+	_building_rects[node.get_instance_id()] = rect
+	for y in range(origin_tile.y, origin_tile.y + footprint.y):
+		for x in range(origin_tile.x, origin_tile.x + footprint.x):
+			var key: String = _tile_key(Vector2i(x, y))
+			_building_blockers[key] = true
+	#_invalidate_spawn_paths()
+	#_notify_tiles_changed(origin_tile)
+
+
+func unregister_building(node: Node) -> void:
+	if node == null:
+		return
+	var key_id: int = node.get_instance_id()
+	if not _building_rects.has(key_id):
+		return
+	var rect: Rect2i = _building_rects[key_id]
+	for y in range(rect.position.y, rect.position.y + rect.size.y):
+		for x in range(rect.position.x, rect.position.x + rect.size.x):
+			_building_blockers.erase(_tile_key(Vector2i(x, y)))
+	_building_rects.erase(key_id)
+	#_invalidate_spawn_paths()
+	#_notify_tiles_changed(rect.position)
+	
 # This is an algorithm to return an Array of Vector2i Coords, defining a rectangular region.
 # It returns all coords within the region.
 # It utilizes a "visited" value to reduce inefficiency in future scans
@@ -283,6 +335,10 @@ func _make_region_from_positions(marker: String, coords: Array[Vector2i]) -> Dic
 		"origin": Vector2i(min_x, min_y),
 		"size": Vector2i(width, height)
 	}
+	
+func _tile_key(tile: Vector2i) -> String:
+	return "%d,%d" % [tile.x, tile.y]
+
 	
 func _build_from_noise(cols: int, rows: int, rand_seed: int) -> void:
 	_cols = max(cols, 1)
