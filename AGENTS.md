@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-- Source: `autoload/` (global singletons like `Game.gd`, `CombatService.gd`), `scenes/` (gameplay scenes and scripts), `systems/` (future systems), `data/` (assets/config), `.godot/` (editor metadata), `project.godot` (project settings).
+- Source: `autoload/` (global singletons like `Game.gd`), `scenes/` (gameplay scenes and scripts), `systems/` (future systems), `data/` (assets/config), `.godot/` (editor metadata), `project.godot` (project settings).
 - Scenes are grouped by domain, e.g. `scenes/units/Unit.tscn`, `scenes/buildings/Base.tscn`, `scenes/ui/RTSCamera2D.tscn`.
 - Prefer one script per scene; expose tunables via `@export` and use `class_name` for shared types.
 
@@ -16,7 +16,7 @@
 ## Coding Style & Naming Conventions
 
 - Indentation: tabs only (no spaces). UTF‑8 encoding (`.editorconfig`).
-- GDScript 4 style: snake_case for variables/functions (`attack_cooldown`), PascalCase for `class_name` and scene/script filenames (`Unit.gd`, `Base.tscn`).
+- GDScript 4 style: snake_case for variables/functions and script file names (`attack_cooldown`, `some_script.gd`), PascalCase for `class_name` and scene filenames (`Unit.tscn`, `Base.tscn`).
 - Signals: past-tense or event-style (`unit_died`, `unit_hit`).
 - Folders: lower_snake (`scenes/buildings`), assets lower_snake (`pikeman.png`).
 - Autoloads live in `autoload/`; register via Project Settings → Autoload.
@@ -35,7 +35,7 @@
 
 ## Commit & Pull Request Guidelines
 
-- Commits: imperative mood, concise subject, optional scope. Examples: `Add enemy unit scene`, `Fix Base spawn timer`, `Refactor CombatService signals`.
+- Commits: active tense, concise subject, optional scope. Examples: `Adds enemy unit scene`, `Fixes Base spawn timer`, `Refactors CombatService signals`.
 - Pull Requests: include purpose, key changes, and before/after notes; link issues; add short clips/screenshots (e.g., camera behavior or combat) when UI/feel changes.
 - CI is not configured; ensure the project opens cleanly and runs from CLI before requesting review.
 
@@ -47,7 +47,7 @@
 
 ## Variant Types
 
-- We are using Godot 4.5, so be very mindful of the inferred type system changes. Often you will want to produce code that infers types, but it is much better to type directly instead of using inference. A;ways prefer explicit types for function return types and variable declarations.
+- We are using Godot 4.5, so be very mindful of the inferred type system changes. Often you will want to produce code that infers types, but it is much better to type directly instead of using inference. Always prefer explicit types for function return types and variable declarations.
 
 ## Considerations for multiplayer
 
