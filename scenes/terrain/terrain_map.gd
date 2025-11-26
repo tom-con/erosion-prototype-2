@@ -7,9 +7,9 @@ class_name TerrainMap
 @export var map_size: String = "medium"
 @export var layout_rows: PackedStringArray = []
 @export var draw_unit_paths: bool = false
-@export var altitude_frequency: float = 0.07
-@export var moisture_frequency: float = 0.07
-@export var termperature_frequency: float = 0.07
+@export var altitude_frequency: float = 0.004
+@export var moisture_frequency: float = 0.007
+@export var termperature_frequency: float = 0.01
 @export var noise_offset: Vector2 = Vector2.ZERO
 
 const MAP_SIZES: Dictionary = {
@@ -42,6 +42,7 @@ const MAP_SIZES: Dictionary = {
 const TERRAIN_TYPES: Dictionary = {
 	"grassland": {
 		"color": Color(0.2, 0.6, 0.25),
+		"texture": "grassland.png",
 		"speed": 1.0,
 		"passable": true,
 		"buildable": true,
@@ -62,6 +63,7 @@ const TERRAIN_TYPES: Dictionary = {
 	},
 	"sparse_forest": {
 		"color": Color(0.1, 0.4, 0.15),
+		"texture": "sparse_forest.png",
 		"speed": 0.7,
 		"passable": true,
 		"buildable": false,
@@ -72,6 +74,7 @@ const TERRAIN_TYPES: Dictionary = {
 	},
 	"dense_forest": {
 		"color": Color(0.06, 0.2, 0.07),
+		"texture": "dense_forest.png",
 		"speed": 0.0,
 		"passable": false,
 		"buildable": false,
@@ -82,6 +85,7 @@ const TERRAIN_TYPES: Dictionary = {
 	},
 	"mountain": {
 		"color": Color(0.35, 0.35, 0.35),
+		"texture": "mountain.png",
 		"speed": 0.0,
 		"passable": false,
 		"buildable": false,
@@ -92,6 +96,7 @@ const TERRAIN_TYPES: Dictionary = {
 	},
 	"river": {
 		"color": Color(0.2, 0.4, 0.85),
+		"texture": "river.png",
 		"speed": 0.35,
 		"passable": true,
 		"buildable": false,
@@ -102,6 +107,7 @@ const TERRAIN_TYPES: Dictionary = {
 	},
 	"sand": {
 		"color": Color(0.78, 0.69, 0.5),
+		"texture": "sand.png",
 		"speed": 0.85,
 		"passable": true,
 		"buildable": true,
@@ -112,6 +118,7 @@ const TERRAIN_TYPES: Dictionary = {
 	},
 	"ocean": {
 		"color": Color(0.05, 0.1, 0.3),
+		"texture": "ocean.png",
 		"speed": 0.0,
 		"passable": false,
 		"buildable": false,
@@ -141,15 +148,32 @@ var _blockers: Array[StaticBody2D] = []
 var _building_regions: Array = []
 var _building_rects: Dictionary = {}
 var _building_blockers: Dictionary = {}
+var _terrain_textures: Dictionary = {}
 
 func _ready() -> void:
-	#random_seed = floor(Time.get_unix_time_from_system())
-	add_to_group("terrain_map") # TODO: Why?
+	add_to_group("terrain_map") 
+	_load_textures()
+	if enable_random_generation:
+		random_seed = floor(Time.get_unix_time_from_system())
+	
 	var selected_map_size: Dictionary = MAP_SIZES[map_size]
 	if enable_random_generation:
 		_build_from_noise(selected_map_size.cols, selected_map_size.rows, random_seed)
 	else:
 		_build_from_layout(layout_rows)
+		
+func _load_textures() -> void:
+	# Load textures once
+	var texture_keys = TERRAIN_TYPES.keys()
+	
+	for k in texture_keys:
+		if TERRAIN_TYPES[k].has("texture"):
+			var img: Image = Image.new()
+			var texture: Texture2D = null
+			img.load("res://scenes/terrain/%s" % TERRAIN_TYPES[k].get("texture"))
+			img.resize(tile_size, tile_size)
+			texture = ImageTexture.create_from_image(img)
+			_terrain_textures[TERRAIN_TYPES[k].get("texture")] = texture
 		
 func _build_from_layout(rows: PackedStringArray) -> void:
 	if rows.is_empty():
@@ -290,7 +314,7 @@ func _build_from_noise(cols: int, rows: int, rand_seed: int) -> void:
 		for x in range(_cols):
 			var pos: Vector2 = Vector2(x, y) + noise_offset
 			var alt: float = _normalize_noise(altitude_noise.get_noise_2d(pos.x, pos.y))
-			var moist: float = _normalize_noise(moisture_noise.get_noise_2d(pos.x, pos.y)) * (1/alt)
+			var moist: float = _normalize_noise(moisture_noise.get_noise_2d(pos.x, pos.y))
 			var temp: float = _normalize_noise(temperature_noise.get_noise_2d(pos.x, pos.y))
 			var type_name: String = _biome_from_layers(alt, moist, temp)
 			row[x] = _make_cell(type_name)
@@ -417,7 +441,11 @@ func _draw() -> void:
 			var info: Dictionary = cell["data"]
 			var color: Color = info.get("color", Color.WHITE)
 			var rect: Rect2 = Rect2(Vector2(x, y) * float(tile_size), Vector2(tile_size, tile_size))
-			draw_rect(rect, color, true)
+			if info.has("texture"):
+				var texture: Texture2D = _terrain_textures.get(info.get("texture"))
+				draw_texture_rect(texture, rect, false)
+			else:
+				draw_rect(rect, color, true)
 			draw_rect(rect, Color(0, 0, 0, 0.1), false, 1.0)
-			#var tile: Vector2i = Vector2i(x, y)
+			
 			

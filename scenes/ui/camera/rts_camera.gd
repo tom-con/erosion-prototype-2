@@ -90,12 +90,35 @@ func _physics_process(delta: float) -> void:
 		_target_pos += move_delta
 		
 	var lerp_target: Vector2 = _target_pos
+	if use_world_clamp:
+		lerp_target = _clamp_to_bounds(_target_pos, _target_zoom)
 	global_position = global_position.lerp(lerp_target, 1.0 - exp(-move_lerp * delta))
 	
 	var current_zoom: float = zoom.x
 	var z: float = lerp(current_zoom, _target_zoom, 1.0 - exp(-zoom_lerp * delta))
 	zoom = Vector2(z, z)
+	
+	if use_world_clamp:
+		global_position = _clamp_to_bounds(global_position, zoom.x)
 
 func _mouse_world() -> Vector2:
 	var screen: Vector2 = get_viewport().get_mouse_position()
 	return get_canvas_transform().affine_inverse() * screen
+	
+func _clamp_to_bounds(pos: Vector2, zoom_value: float) -> Vector2:
+	if zoom_value <= 0.0 or is_nan(zoom_value):
+		return pos
+	
+	var half: Vector2 = (_viewport_size * 0.5) * zoom_value
+	
+	var min_x: float = _world_bounds.position.x + half.x
+	var max_x: float = _world_bounds.position.x + _world_bounds.size.x - half.x
+	var min_y: float = _world_bounds.position.y + half.y
+	var max_y: float = _world_bounds.position.y + _world_bounds.size.y - half.y
+	
+	if min_x <= max_x:
+		pos.x = clamp(pos.x, min_x, max_x)
+	if min_y <= max_y:
+		pos.y = clamp(pos.y, min_y, max_y)
+	
+	return pos
