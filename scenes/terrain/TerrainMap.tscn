@@ -1,0 +1,17 @@
+[gd_scene load_steps=2 format=3 uid="uid://bm6ky3t6ni7tw"]
+
+[ext_resource type="Script" uid="uid://dm687sw26hu8u" path="res://scenes/terrain/terrain_map.gd" id="1_edu7d"]
+
+[node name="TerrainMap" type="Node2D"]
+script = ExtResource("1_edu7d")
+tile_size = null
+enable_random_generation = null
+random_seed = null
+map_size = null
+layout_rows = null
+draw_unit_paths = null
+altitude_frequency = 0.01
+moisture_frequency = 0.2
+termperature_frequency = 0.09
+noise_offset = null
+_world_rect = null
