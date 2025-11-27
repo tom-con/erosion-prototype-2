@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cfvmtw6q26jtp"
-path="res://.godot/imported/grassland.png-aeb606a2c6c5967826ef66e631330b8c.ctex"
+uid="uid://cx1wdrg7j1s3"
+path="res://.godot/imported/stockpile_icon.png-de32295167c14210d546325d60994d61.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://scenes/terrain/grassland.png"
-dest_files=["res://.godot/imported/grassland.png-aeb606a2c6c5967826ef66e631330b8c.ctex"]
+source_file="res://assets/icons/stockpile_icon.png"
+dest_files=["res://.godot/imported/stockpile_icon.png-de32295167c14210d546325d60994d61.ctex"]
 
 [params]
 

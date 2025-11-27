@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://barsc4ycjht77"
-path="res://.godot/imported/sand.png-09808184fa95fe10b27ca394e204532a.ctex"
+uid="uid://domumwfcmdn0r"
+path="res://.godot/imported/iron_icon.png-1557d1745fe14a637174edaccd8bcdd9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://scenes/terrain/sand.png"
-dest_files=["res://.godot/imported/sand.png-09808184fa95fe10b27ca394e204532a.ctex"]
+source_file="res://assets/icons/iron_icon.png"
+dest_files=["res://.godot/imported/iron_icon.png-1557d1745fe14a637174edaccd8bcdd9.ctex"]
 
 [params]
 

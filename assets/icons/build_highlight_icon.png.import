@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://is7ktm7kyj2r"
-path="res://.godot/imported/ocean.png-ceddcbf1ca740616f72c36a413f834a3.ctex"
+uid="uid://cefrh5f8eckmm"
+path="res://.godot/imported/build_highlight_icon.png-1aa15d00c129c33bd4ffec91235560e2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://scenes/terrain/ocean.png"
-dest_files=["res://.godot/imported/ocean.png-ceddcbf1ca740616f72c36a413f834a3.ctex"]
+source_file="res://assets/icons/build_highlight_icon.png"
+dest_files=["res://.godot/imported/build_highlight_icon.png-1aa15d00c129c33bd4ffec91235560e2.ctex"]
 
 [params]
 

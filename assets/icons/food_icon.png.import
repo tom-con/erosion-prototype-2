@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ck5y2qj4af5v2"
-path="res://.godot/imported/dense_forest.png-8864c824c4575afbf7571a1f649c2165.ctex"
+uid="uid://duped282lwju0"
+path="res://.godot/imported/food_icon.png-d86b94cd4787b87c3c7621392a91a381.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://scenes/terrain/dense_forest.png"
-dest_files=["res://.godot/imported/dense_forest.png-8864c824c4575afbf7571a1f649c2165.ctex"]
+source_file="res://assets/icons/food_icon.png"
+dest_files=["res://.godot/imported/food_icon.png-d86b94cd4787b87c3c7621392a91a381.ctex"]
 
 [params]
 

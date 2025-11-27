@@ -20,6 +20,7 @@ func _initialize_world() -> void:
 		_update_camera_bounds()
 		_spawn_bases()
 		
+		
 func _spawn_bases() -> void:
 	if base_scene == null or terrain_map == null:
 		return

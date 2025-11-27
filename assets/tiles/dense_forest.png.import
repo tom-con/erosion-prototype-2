@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://3gvjys0jt3r2"
-path="res://.godot/imported/sparse_forest.png-aeb6e8ce4c4162d57e4ce547a08c02ff.ctex"
+uid="uid://ck5y2qj4af5v2"
+path="res://.godot/imported/dense_forest.png-09074f9ea6c2897906945342c7ea5eb7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://scenes/terrain/sparse_forest.png"
-dest_files=["res://.godot/imported/sparse_forest.png-aeb6e8ce4c4162d57e4ce547a08c02ff.ctex"]
+source_file="res://assets/tiles/dense_forest.png"
+dest_files=["res://.godot/imported/dense_forest.png-09074f9ea6c2897906945342c7ea5eb7.ctex"]
 
 [params]
 

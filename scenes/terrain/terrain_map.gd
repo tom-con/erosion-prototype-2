@@ -42,7 +42,7 @@ const MAP_SIZES: Dictionary = {
 const TERRAIN_TYPES: Dictionary = {
 	"grassland": {
 		"color": Color(0.2, 0.6, 0.25),
-		"texture": "grassland.png",
+		"texture": "grassland",
 		"speed": 1.0,
 		"passable": true,
 		"buildable": true,
@@ -63,7 +63,7 @@ const TERRAIN_TYPES: Dictionary = {
 	},
 	"sparse_forest": {
 		"color": Color(0.1, 0.4, 0.15),
-		"texture": "sparse_forest.png",
+		"texture": "sparse_forest",
 		"speed": 0.7,
 		"passable": true,
 		"buildable": false,
@@ -74,7 +74,7 @@ const TERRAIN_TYPES: Dictionary = {
 	},
 	"dense_forest": {
 		"color": Color(0.06, 0.2, 0.07),
-		"texture": "dense_forest.png",
+		"texture": "dense_forest",
 		"speed": 0.0,
 		"passable": false,
 		"buildable": false,
@@ -85,7 +85,7 @@ const TERRAIN_TYPES: Dictionary = {
 	},
 	"mountain": {
 		"color": Color(0.35, 0.35, 0.35),
-		"texture": "mountain.png",
+		"texture": "mountain",
 		"speed": 0.0,
 		"passable": false,
 		"buildable": false,
@@ -96,7 +96,7 @@ const TERRAIN_TYPES: Dictionary = {
 	},
 	"river": {
 		"color": Color(0.2, 0.4, 0.85),
-		"texture": "river.png",
+		"texture": "river",
 		"speed": 0.35,
 		"passable": true,
 		"buildable": false,
@@ -107,7 +107,7 @@ const TERRAIN_TYPES: Dictionary = {
 	},
 	"sand": {
 		"color": Color(0.78, 0.69, 0.5),
-		"texture": "sand.png",
+		"texture": "sand",
 		"speed": 0.85,
 		"passable": true,
 		"buildable": true,
@@ -118,7 +118,7 @@ const TERRAIN_TYPES: Dictionary = {
 	},
 	"ocean": {
 		"color": Color(0.05, 0.1, 0.3),
-		"texture": "ocean.png",
+		"texture": "ocean",
 		"speed": 0.0,
 		"passable": false,
 		"buildable": false,
@@ -148,11 +148,9 @@ var _blockers: Array[StaticBody2D] = []
 var _building_regions: Array = []
 var _building_rects: Dictionary = {}
 var _building_blockers: Dictionary = {}
-var _terrain_textures: Dictionary = {}
 
 func _ready() -> void:
 	add_to_group("terrain_map") 
-	_load_textures()
 	if enable_random_generation:
 		random_seed = floor(Time.get_unix_time_from_system())
 	
@@ -161,19 +159,6 @@ func _ready() -> void:
 		_build_from_noise(selected_map_size.cols, selected_map_size.rows, random_seed)
 	else:
 		_build_from_layout(layout_rows)
-		
-func _load_textures() -> void:
-	# Load textures once
-	var texture_keys = TERRAIN_TYPES.keys()
-	
-	for k in texture_keys:
-		if TERRAIN_TYPES[k].has("texture"):
-			var img: Image = Image.new()
-			var texture: Texture2D = null
-			img.load("res://scenes/terrain/%s" % TERRAIN_TYPES[k].get("texture"))
-			img.resize(tile_size, tile_size)
-			texture = ImageTexture.create_from_image(img)
-			_terrain_textures[TERRAIN_TYPES[k].get("texture")] = texture
 		
 func _build_from_layout(rows: PackedStringArray) -> void:
 	if rows.is_empty():
@@ -497,8 +482,8 @@ func _draw() -> void:
 			var info: Dictionary = cell["data"]
 			var color: Color = info.get("color", Color.WHITE)
 			var rect: Rect2 = Rect2(Vector2(x, y) * float(tile_size), Vector2(tile_size, tile_size))
-			if info.has("texture"):
-				var texture: Texture2D = _terrain_textures.get(info.get("texture"))
+			if info.has("texture") and ImageLibrary.has_tile(info.get("texture")):
+				var texture: Texture2D = ImageLibrary.get_tile(info.get("texture"))
 				draw_texture_rect(texture, rect, false)
 			else:
 				draw_rect(rect, color, true)

@@ -1,0 +1,73 @@
+[gd_scene load_steps=8 format=3 uid="uid://bwmevbtibwtnf"]
+
+[ext_resource type="Script" uid="uid://cl3wuavxavm52" path="res://scenes/ui/panels/action_panel.gd" id="1_a0wr0"]
+[ext_resource type="Theme" uid="uid://df3j41nhqmkar" path="res://theme/theme.tres" id="1_kqfjy"]
+[ext_resource type="Texture2D" uid="uid://ccljd16q5w456" path="res://assets/icons/build_icon.png" id="2_tn7gr"]
+[ext_resource type="Texture2D" uid="uid://dq8hybxnhp0u3" path="res://assets/icons/harvest_highlight_icon.png" id="3_731l6"]
+[ext_resource type="Texture2D" uid="uid://cl7dpu2hliv6c" path="res://assets/icons/harvest_icon.png" id="3_qvdho"]
+[ext_resource type="Texture2D" uid="uid://cefrh5f8eckmm" path="res://assets/icons/build_highlight_icon.png" id="5_731l6"]
+
+[sub_resource type="Theme" id="Theme_kqfjy"]
+
+[node name="ActionPanel" type="PanelContainer"]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -208.0
+offset_right = 285.0
+grow_vertical = 0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme = ExtResource("1_kqfjy")
+script = ExtResource("1_a0wr0")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+theme = ExtResource("1_kqfjy")
+
+[node name="Actions" type="HBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme = ExtResource("1_kqfjy")
+alignment = 1
+
+[node name="HarvestContainer" type="VBoxContainer" parent="MarginContainer/Actions"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="MarginContainer/Actions/HarvestContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+theme = SubResource("Theme_kqfjy")
+text = "Harvest"
+horizontal_alignment = 1
+
+[node name="HarvestButton" type="TextureButton" parent="MarginContainer/Actions/HarvestContainer"]
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+size_flags_vertical = 3
+action_mode = 0
+texture_normal = ExtResource("3_qvdho")
+texture_hover = ExtResource("3_731l6")
+stretch_mode = 4
+
+[node name="BuildContainer" type="VBoxContainer" parent="MarginContainer/Actions"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="MarginContainer/Actions/BuildContainer"]
+layout_mode = 2
+theme = ExtResource("1_kqfjy")
+text = "Build"
+horizontal_alignment = 1
+
+[node name="BuildButton" type="TextureButton" parent="MarginContainer/Actions/BuildContainer"]
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+size_flags_vertical = 3
+action_mode = 0
+texture_normal = ExtResource("2_tn7gr")
+texture_hover = ExtResource("5_731l6")
+stretch_mode = 4
+
+[connection signal="pressed" from="MarginContainer/Actions/HarvestContainer/HarvestButton" to="." method="_on_harvest_action_button_pressed"]
+[connection signal="pressed" from="MarginContainer/Actions/BuildContainer/BuildButton" to="." method="_on_build_action_button_pressed"]

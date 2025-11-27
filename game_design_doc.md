@@ -1,24 +1,24 @@
 # Overview
 
-The purpose of the project is to learn the game engine Godot as well as foundational concepts in game development. This game is an effort to build a 2D Flash Game “Erosion Battle” in the Godot game engine (v4.5+). Erosion Battle is an RTS game where players make choices and inputs but some of the gameplay happens automatically (the player does not directly control units). The aim of Erosion Battle is for the player to build an army and overwhelm enemy forces on a battle map. The player can buy various upgrades to help accomplish this goal.
+The purpose of the project is to learn the game engine Godot as well as foundational concepts in game development. This game is an effort to build a 2D Game “Erosion Battle” in the Godot game engine (v4.5+). Erosion Battle is an RTS game where players make choices and inputs but some of the gameplay happens automatically (the player does not directly control units). The aim of Erosion Battle is for the player to build the infastructure to support an army and overwhelm enemy forces on a battle map. The player can buy various structures and upgrades to help accomplish this goal. The game's RTS controls and mechanics are inspired by classic RTS games like Age of Empires 2 and Warcraft 3. The automatic unit spawning and pathfinding/attacking mechanics are inspired by Dota 2 lane creeps. The battle mechanics are inspired by something like Ultimate Epic Battle Simulator 2.
 
 # The Game Scene
 
 ## Map
 
-The game map is a 2D area which will consist of various terrain types (grassland, forest, rivers, mountains, etc.). The map is tile-based with square tiles of 8x8 pixels. Some maps will be hand-crafted, whereas others should be procedurally generated.
+The game map is a 2D area which will consist of various terrain types (grassland, forest, rivers, mountains, oceans etc.). The map is tile-based with square tiles of 32x32 pixels. So one tile has a world size of 32x32. Some maps are hand-crafted by passing a string array where the strings represent a row of the gameworld (letters are terrain/building/resource types), whereas other maps are procedurally generated. Procedural generation utilizes 3 noise layers to define altitude, moisture, and temperature. These layers are combined to create biomes which then define terrain types. Resources and bases are then placed on the map according to a set of rules.
 
 ## Camera
 
-The camera is positioned in a top-down perspective above the map. The player has control of camera positioning by using the mouse or WASD keys. Camera rotation is not enabled to retain the 2D perspective. The camera is bound to the map and cannot exit the map area.
+The camera is positioned in a top-down perspective above the map. The player has control of camera positioning by using the mouse or WASD keys. Camera rotation is not enabled to retain the 2D perspective. The camera is bound to the map and cannot exit the map area. Middle-mouse is used for click-and-drag movement. Zoom can be done with mouse wheel or magnify action.
 
 ## Player Base
 
-The player will have a “base” which will be spawned on the map in a random area (within a specific set of spawn-zone criteria).
+The player will have a “base” which will be spawned on the map in a random area (within a specific set of spawn-zone criteria). The player base is sized to 8x8 tiles, and during placement a 1 tile buffer surrounding the base is utilized to ensure sufficient space for unit spawns and initial movement around the base.
 
 ## Enemy Base
 
-The enemy (or enemies) will have a base (or or bases) which will be spawned on the map in a random area (within a specific set of spawn-zone criteria).
+The enemy (or enemies) will have a base (or or bases) which will be spawned on the map in a random area (within a specific set of spawn-zone criteria). The enemy base is also 8x8 tiles and also has the 1 tile buffer.
 
 ## Fog of War
 
@@ -42,9 +42,9 @@ Areas of the map that a player-controlled entity has never had line-of-sight on 
 
 In the top-right of the screen is a mini-map that shows the full map. It takes into account the current Fog of War. The minimap shows a representation of the current main camera frame in relation to the full map.
 
-### Player Actions
+### Contextual Player Actions
 
-In the bottom-center of the screen is a selection of Player Actions. These are the core actions a player can take. The Actions below are described from left-to-right.
+In the bottom-center of the screen is a selection of Player Actions. These are the core actions a player can take within a given context. The Actions below are described from left-to-right.
 
 #### Build
 
