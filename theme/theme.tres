@@ -1,10 +1,14 @@
-[gd_resource type="Theme" load_steps=4 format=3 uid="uid://df3j41nhqmkar"]
+[gd_resource type="Theme" load_steps=6 format=3 uid="uid://df3j41nhqmkar"]
 
 [ext_resource type="FontFile" uid="uid://xgmi6or5my6u" path="res://theme/fonts/PixelifySans-VariableFont_wght.ttf" id="1_8ab6e"]
 [ext_resource type="Texture2D" uid="uid://cddwugw2ucd4h" path="res://theme/panel.png" id="2_nrt0f"]
+[ext_resource type="Texture2D" uid="uid://dk1a8pgyg1h24" path="res://theme/tooltip_panel.png" id="3_4yjuo"]
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_4yjuo"]
 texture = ExtResource("2_nrt0f")
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_gco77"]
+texture = ExtResource("3_4yjuo")
 
 [resource]
 default_base_scale = 0.31
@@ -13,9 +17,11 @@ default_font_size = 26
 BoxContainer/constants/separation = 20
 GridContainer/constants/h_separation = 20
 GridContainer/constants/v_separation = 20
+Label/font_sizes/font_size = 28
 Label/fonts/font = ExtResource("1_8ab6e")
 MarginContainer/constants/margin_bottom = 30
 MarginContainer/constants/margin_left = 30
 MarginContainer/constants/margin_right = 30
 MarginContainer/constants/margin_top = 30
 PanelContainer/styles/panel = SubResource("StyleBoxTexture_4yjuo")
+TooltipPanel/styles/panel = SubResource("StyleBoxTexture_gco77")
