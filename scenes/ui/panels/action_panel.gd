@@ -77,23 +77,12 @@ func _ready() -> void:
 	
 func _on_harvest_action_button_pressed() -> void:
 	if not _context_menu:
-		return
-	if _context_menu.last_action == HARVESTING:
-		_context_menu.hide()
-		_context_menu.last_action = ""
-	else:
-		_context_menu.show()
-		_context_menu.set_context(_harvesting_context)
-		_context_menu.last_action = HARVESTING
+		return		
+	_context_menu.set_context(_context_menu.HARVESTING_CONTEXT, _harvesting_context)
+		
 		
 
 func _on_build_action_button_pressed() -> void:
 	if not _context_menu:
-		return
-	if _context_menu.last_action == BUILDING:
-		_context_menu.hide()
-		_context_menu.last_action = ""
-	else:
-		_context_menu.show()
-		_context_menu.set_context(_building_context)
-		_context_menu.last_action = BUILDING
+		return	
+	_context_menu.set_context(_context_menu.BUILDING_CONTEXT, _building_context)
