@@ -4,7 +4,7 @@
 [ext_resource type="Theme" uid="uid://df3j41nhqmkar" path="res://theme/theme.tres" id="1_oeo6y"]
 
 [node name="ResourcePanel" type="PanelContainer"]
-custom_minimum_size = Vector2(512, 72)
+custom_minimum_size = Vector2(800, 72)
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5

@@ -71,8 +71,10 @@ func _add_entry(definition: Dictionary) -> Dictionary:
 		for ci in cost_info.keys():
 			var amount = cost_info.get(ci)
 			var cost_label: CostLabel = _cost_label_scene.instantiate()
-			cost_label.set_cost(ci, amount)
 			container.add_child(cost_label)
+			cost_label.type = ci
+			cost_label.amount = amount
+			cost_label.label_size = "small"
 	
 	_entries_cache[definition.get("id")] = {
 		"button": container,

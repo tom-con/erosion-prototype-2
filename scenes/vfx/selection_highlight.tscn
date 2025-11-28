@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://u8w0kvhutlt2"]
+
+[ext_resource type="Script" uid="uid://dsvala6hylymi" path="res://scenes/vfx/selection_highlight.gd" id="1_m6w18"]
+
+[node name="SelectionHighlight" type="Node2D"]
+script = ExtResource("1_m6w18")

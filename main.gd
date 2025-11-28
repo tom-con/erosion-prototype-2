@@ -6,6 +6,7 @@ extends Node2D
 
 @onready var camera: Camera2D = $RtsCamera
 @onready var terrain_map: TerrainMap = $TerrainMap
+@onready var info_panel: InfoPanel = get_node("CanvasLayer/InfoPanel")
 @onready var resource_panel: ResourcePanel = get_node("CanvasLayer/ResourcePanel")
 @onready var game: Node = get_node_or_null("/root/Game")
 
@@ -155,3 +156,9 @@ func _base_anchor_ratio(index: int, total: int) -> Vector2:
 	var angle: float = TAU * float(index) / float(total)
 	var radius: float = 0.4
 	return Vector2(0.5, 0.5) + Vector2(cos(angle), sin(angle)) * radius
+
+func _show_tile_details(tile: Vector2i) -> void:
+	if not terrain_map or not info_panel:
+		return
+	if not terrain_map.is_tile_within_bounds(tile):
+		info_panel.show_prompt()
