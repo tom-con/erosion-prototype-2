@@ -86,3 +86,17 @@ func _apply_tile_scaling() -> void:
 			if rect_shape:
 				rect_shape.size = desired_size
 	
+func get_collision_rect() -> Rect2:
+	if _collider_shape and _collider_shape.is_inside_tree():
+		var rect_shape: RectangleShape2D = _collider_shape.shape as RectangleShape2D
+		if rect_shape:
+			var size: Vector2 = rect_shape.size
+			var origin: Vector2 = _collider_shape.global_position - size * 0.5
+			return Rect2(origin, size)
+	return Rect2(global_position - Vector2(128, 128), Vector2(256, 256))
+	
+func get_collision_center() -> Vector2:
+	if _collider_shape and _collider_shape.is_inside_tree():
+		# CollisionShape2D is a Node2D; use its global_position for an accurate center
+		return _collider_shape.global_position
+	return global_position

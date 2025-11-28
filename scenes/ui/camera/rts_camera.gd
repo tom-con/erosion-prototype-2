@@ -36,6 +36,7 @@ func _ready() -> void:
 	
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
 
+
 func _configure_world_bounds() -> void:
 	var terrain_map: TerrainMap = get_node(tilemap_path)
 	if !terrain_map or !terrain_map is TerrainMap:

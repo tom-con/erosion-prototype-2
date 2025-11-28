@@ -149,6 +149,8 @@ var _building_regions: Array = []
 var _building_rects: Dictionary = {}
 var _building_blockers: Dictionary = {}
 
+var _harvest_tags: Dictionary = {}
+
 func _ready() -> void:
 	add_to_group("terrain_map") 
 	if enable_random_generation:
@@ -488,5 +490,26 @@ func _draw() -> void:
 			else:
 				draw_rect(rect, color, true)
 			draw_rect(rect, Color(0, 0, 0, 0.1), false, 1.0)
+			
+func is_tile_harvestable(tile: Vector2i, allowed_resources: Array = []) -> bool:
+	if not is_tile_within_bounds(tile):
+		return false
+	var cell: Dictionary = _grid[tile.y][tile.x]
+	if cell.is_empty():
+		return false
+	var data: Dictionary = cell.get("data", {})
+	var resource_type: String = data.get("resource_type", "")
+	if resource_type == "":
+		return false
+	var remaining: int = data.get("health", data.get("harvest_amount", 0))
+	if remaining <= 0:
+		return false
+	if allowed_resources.is_empty():
+		return true
+	return allowed_resources.has(resource_type)
+	
+func is_tile_marked_for_harvest(tile: Vector2i) -> bool:
+	var key: String = _tile_key(tile)
+	return _harvest_tags.get(key, false)
 			
 			
