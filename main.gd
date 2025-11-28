@@ -6,6 +6,7 @@ extends Node2D
 
 @onready var camera: Camera2D = $RtsCamera
 @onready var terrain_map: TerrainMap = $TerrainMap
+@onready var resource_panel: ResourcePanel = get_node("CanvasLayer/ResourcePanel")
 @onready var game: Node = get_node_or_null("/root/Game")
 
 var _bases: Array[BaseBuilding] = []
@@ -19,6 +20,7 @@ func _initialize_world() -> void:
 	if terrain_map:
 		_update_camera_bounds()
 		_spawn_bases()
+	resource_panel._render_resources_for_player()
 		
 		
 func _spawn_bases() -> void:
@@ -47,11 +49,13 @@ func _spawn_bases() -> void:
 	var spawn_count: int = max(player_count, 1)
 	var placed: Array[Rect2i] = []
 	for index in range(spawn_count):
+		var team_id: String = "player" if index == 0 else "enemy_%d" % index 
 		var base_node: BaseBuilding = base_scene.instantiate() as BaseBuilding
 		if base_node == null:
 			continue
 		base_node.is_player = index == 0
-		base_node.team_id = "player" if index == 0 else "enemy_%d" % index
+		base_node.team_id = team_id
+		game.initialize_resources_for_actor(team_id)
 		base_node.team_color = game.get_team_color(base_node.team_id)
 		var footprint: Vector2i = Vector2i(max(base_node.width_in_tiles, 1), max(base_node.height_in_tiles, 1))
 		var origin: Vector2i = _base_origin_for_index(index, spawn_count, footprint, grid_size, placed)
@@ -71,7 +75,7 @@ func _spawn_bases() -> void:
 		_bases.append(base_node)
 		var owner_label: String = "player" if base_node.is_player else "enemy"
 		print("[World] Placed %s base at tiles %s size %s" % [owner_label, str(origin), str(footprint)])
-		
+	
 func _update_camera_bounds() -> void:
 	if not camera or not terrain_map:
 		return

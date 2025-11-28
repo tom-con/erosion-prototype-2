@@ -1,0 +1,19 @@
+[gd_scene load_steps=3 format=3 uid="uid://dge007vcluq33"]
+
+[ext_resource type="Script" uid="uid://crq1ry7iypb5l" path="res://scenes/ui/panels/resource_panel.gd" id="1_ndxi2"]
+[ext_resource type="Theme" uid="uid://df3j41nhqmkar" path="res://theme/theme.tres" id="1_oeo6y"]
+
+[node name="ResourcePanel" type="PanelContainer"]
+custom_minimum_size = Vector2(512, 72)
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+grow_horizontal = 2
+theme = ExtResource("1_oeo6y")
+script = ExtResource("1_ndxi2")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer"]
+layout_mode = 2
