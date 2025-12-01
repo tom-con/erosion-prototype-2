@@ -1,9 +1,20 @@
-[gd_scene load_steps=3 format=3 uid="uid://diwlh2a326q2a"]
+[gd_scene load_steps=4 format=3 uid="uid://diwlh2a326q2a"]
 
 [ext_resource type="SpriteFrames" uid="uid://c7x6lttttgb45" path="res://assets/sprites/worker/worker_animated.res" id="1_pq6t7"]
 [ext_resource type="Script" uid="uid://be6gmfauu4qkq" path="res://scenes/automatons/worker.gd" id="2_ej0jr"]
 
-[node name="Worker" type="AnimatedSprite2D"]
-sprite_frames = ExtResource("1_pq6t7")
-animation = &"death"
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_pq6t7"]
+size = Vector2(2, 7)
+
+[node name="Worker" type="CharacterBody2D"]
 script = ExtResource("2_ej0jr")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = ExtResource("1_pq6t7")
+animation = &"walk"
+frame = 2
+frame_progress = 0.32633296
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 0.5)
+shape = SubResource("RectangleShape2D_pq6t7")

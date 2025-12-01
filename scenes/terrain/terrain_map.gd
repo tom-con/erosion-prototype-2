@@ -1,6 +1,9 @@
 extends Node2D
 class_name TerrainMap
 
+signal harvest_tags_changed(tile: Vector2i, is_marked: bool)
+signal tile_changed(tile: Vector2i)
+
 @export var tile_size: int = 32
 @export var enable_random_generation: bool = true
 @export var random_seed: int = 1337
@@ -326,6 +329,17 @@ func _make_region_from_positions(marker: String, coords: Array[Vector2i]) -> Dic
 func _tile_key(tile: Vector2i) -> String:
 	return "%d,%d" % [tile.x, tile.y]
 
+func _neighbor_dirs() -> Array:
+	return [
+		Vector2i(1, 0),
+		Vector2i(-1, 0),
+		Vector2i(0, 1),
+		Vector2i(0, -1),
+		Vector2i(1, 1),
+		Vector2i(-1, -1),
+		Vector2i(1, -1),
+		Vector2i(-1, 1)
+	]
 	
 func _build_from_noise(cols: int, rows: int, rand_seed: int) -> void:
 	_cols = max(cols, 1)
@@ -512,4 +526,170 @@ func is_tile_marked_for_harvest(tile: Vector2i) -> bool:
 	var key: String = _tile_key(tile)
 	return _harvest_tags.get(key, false)
 			
-			
+func mark_tile_for_harvest(tile: Vector2i) -> bool:
+	if not is_tile_harvestable(tile):
+		return false
+	var key: String = _tile_key(tile)
+	if _harvest_tags.get(key, false):
+		return false
+	_harvest_tags[key] = true
+	queue_redraw()
+	emit_signal("harvest_tags_changed", tile, true)
+	return true
+
+func unmark_tile_for_harvest(tile: Vector2i) -> bool:
+	var key: String = _tile_key(tile)
+	if not _harvest_tags.has(key):
+		return false
+	_unmark_tile_internal(tile)
+	return true
+	
+func _unmark_tile_internal(tile: Vector2i) -> void:
+	var key: String = _tile_key(tile)
+	if not _harvest_tags.has(key):
+		return
+	_harvest_tags.erase(key)
+	queue_redraw()
+	emit_signal("harvest_tags_changed", tile, false)
+
+func _update_mark_after_harvest(tile: Vector2i, was_marked: bool) -> void:
+	if not was_marked:
+		_unmark_tile_internal(tile)
+		return
+	if is_tile_harvestable(tile):
+		var key: String = _tile_key(tile)
+		_harvest_tags[key] = true
+		queue_redraw()
+	else:
+		_unmark_tile_internal(tile)
+		
+func harvest_tile(tile: Vector2i, max_collect: int = 0) -> Dictionary:
+	if not is_tile_within_bounds(tile):
+		return {}
+	var cell: Dictionary = _grid[tile.y][tile.x]
+	if cell.is_empty():
+		return {}
+	var data: Dictionary = cell.get("data", {})
+	var resource_type: String = data.get("resource_type", "")
+	if resource_type == "":
+		return {}
+	var amount: int = data.get("harvest_amount", 0)
+	#TODO: Might refactor this to make health and amount separated
+	var remaining: int = max(data.get("health", amount), amount)
+	if remaining <= 0 or amount <= 0:
+		return {}
+	var desired: int = amount
+	if max_collect > 0:
+		desired = min(desired, max_collect)
+	var collected: int = min(desired, remaining)
+	if collected <= 0:
+		return {}
+	var next_type: String = data.get("next_type", "")
+	var was_marked: bool = is_tile_marked_for_harvest(tile)
+	data["health"] = remaining - collected
+	var depleted: bool = data["health"] <= 0
+	cell["data"] = data
+	if not depleted:
+		_grid[tile.y][tile.x] = cell
+		queue_redraw()
+		return {
+			"resource_type": resource_type,
+			"amount": collected,
+			"depleted": false
+		}
+	if next_type != "":
+		_set_tile_type(tile, next_type)
+	else:
+		queue_redraw()
+	_update_mark_after_harvest(tile, was_marked)
+	return {
+		"resource_type": resource_type,
+		"amount": collected,
+		"depleted": true
+	}
+	
+func find_nearest_harvestable_tile(start_tile: Vector2i, allowed_resources: Array = [], max_radius: int = 12) -> Variant:
+	if _cols <= 0 or _rows <= 0:
+		return null
+	var clamped: Vector2i = Vector2i(
+		clamp(start_tile.x, 0, _cols - 1),
+		clamp(start_tile.y, 0, _rows - 1)
+	)
+	var queue: Array = []
+	var visited: Dictionary = {}
+	queue.append(clamped)
+	visited[_tile_key(clamped)] = true
+
+	while not queue.is_empty():
+		var current: Vector2i = queue.pop_front()
+		if is_tile_harvestable(current, allowed_resources):
+			return current
+		var dist: int = max(abs(current.x - clamped.x), abs(current.y - clamped.y))
+		if dist >= max_radius:
+			continue
+		for dir in _neighbor_dirs():
+			var next: Vector2i = current + dir
+			if not is_tile_within_bounds(next):
+				continue
+			var key: String = _tile_key(next)
+			if visited.has(key):
+				continue
+			visited[key] = true
+			queue.append(next)
+	return null
+
+	
+func find_nearest_marked_tile(start_tile: Vector2i, allowed_resources: Array = [], max_radius: int = 20) -> Variant:
+	if _cols <= 0 or _rows <= 0:
+		return null
+	var clamped: Vector2i = Vector2i(
+		clamp(start_tile.x, 0, _cols - 1),
+		clamp(start_tile.y, 0, _rows - 1)
+	)
+	var queue: Array = []
+	var visited: Dictionary = {}
+	queue.append(clamped)
+	visited[_tile_key(clamped)] = true
+	
+	while not queue.is_empty():
+		var current: Vector2i = queue.pop_front()
+		if is_tile_marked_for_harvest(current) and is_tile_harvestable(current, allowed_resources):
+			return current
+		var dist: int = max(abs(current.x - clamped.x), abs(current.y - clamped.y))
+		if dist >= max_radius:
+			continue
+		for dir in _neighbor_dirs():
+			var next: Vector2i = current + dir
+			if not is_tile_within_bounds(next):
+				continue
+			var key: String = _tile_key(next)
+			if visited.has(key):
+				continue
+			visited[key] = true
+			queue.append(next)
+	return null
+
+func get_speed_multiplier(world_position: Vector2) -> float:
+	var cell: Dictionary = get_cell_at_world(world_position)
+	if cell.is_empty():
+		return 1.0
+	return cell["data"].get("speed", 1.0)
+	
+func is_passable(world_position: Vector2) -> bool:
+	var cell: Dictionary = get_cell_at_world(world_position)
+	if cell.is_empty():
+		return true
+	if not cell["data"].get("passable", true):
+		return false
+	var tile: Vector2i = get_tile_coords(world_position)
+	return not _building_blockers.get(_tile_key(tile), false)
+	
+func is_tile_passable(tile: Vector2i) -> bool:
+	if not is_tile_within_bounds(tile):
+		return false
+	var cell: Dictionary = _grid[tile.y][tile.x]
+	if not cell:
+		return true
+	if not cell["data"].get("passable", true):
+		return false
+	return not _building_blockers.get(_tile_key(tile), false)
