@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3 uid="uid://dj4ctp2w0nyv6"]
+
+[ext_resource type="Script" uid="uid://80uvxksj678r" path="res://scenes/ui/panels/player_panel.gd" id="1_34dyr"]
+[ext_resource type="Theme" uid="uid://df3j41nhqmkar" path="res://theme/theme.tres" id="1_enhn7"]
+
+[node name="PlayerPanel" type="PanelContainer"]
+custom_minimum_size = Vector2(144, 144)
+theme = ExtResource("1_enhn7")
+script = ExtResource("1_34dyr")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2

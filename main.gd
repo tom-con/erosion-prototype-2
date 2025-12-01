@@ -10,6 +10,7 @@ extends Node2D
 @onready var resource_panel: ResourcePanel = get_node("CanvasLayer/ResourcePanel")
 @onready var action_panel: ActionPanel = get_node("CanvasLayer/ActionPanel")
 @onready var context_panel: ContextPanel = get_node("CanvasLayer/ContextPanel")
+@onready var player_panel: PlayerPanel = get_node("CanvasLayer/PlayerPanel")
 @onready var selection_highlight: SelectionHighlight = $SelectionHighlight
 @onready var game: Node = get_node_or_null("/root/Game")
 
@@ -27,35 +28,6 @@ var _drag_start_world: Vector2 = Vector2.ZERO
 var _drag_current_world: Vector2 = Vector2.ZERO
 
 var _bases: Array[BaseBuilding] = []
-
-var _base_context: Array[Dictionary] = [
-	{
-		"id": "worker",
-		"label": "Worker",
-		"description": "Buy a new worker to gather resources",
-		"cost": {
-			"food": 50	
-		},
-		"icon": {
-			"base": "worker_icon",
-			"hover": "worker_highlight_icon"
-		},
-		"press_signal": ""
-	},
-	{
-		"id": "spawn_rate",
-		"label": "Spawn Rate",
-		"description": "Increase the rate at which Spearmen spawn",
-		"cost": {
-			"wood": 200,
-			"stone": 200
-		},
-		"icon": {
-			"base": "spawn_rate_icon",
-			"hover": "spawn_rate_highlight_icon"
-		}
-	}
-]
 
 func _ready() -> void:
 	set_process_input(true)
@@ -81,6 +53,7 @@ func _initialize_world() -> void:
 		_update_camera_bounds()
 		_spawn_bases()
 	resource_panel._render_resources_for_player()
+	player_panel.draw_players()
 	_focus_camera_on_player_base()
 	
 	
@@ -149,7 +122,7 @@ func _update_drag_highlight(_screen_position: Vector2) -> void:
 func _finish_drag_selection(screen_position: Vector2) -> void:
 	var end_world: Vector2 = camera.get_global_mouse_position()
 	var drag_distance: float = (_drag_start_screen - screen_position).length()
-	context_panel.set_context(context_panel.NULL_CONTEXT, [])
+	context_panel.set_context(context_panel.NULL_CONTEXT)
 	_is_dragging = false
 	if selection_highlight:
 		selection_highlight.hide_highlight()
@@ -200,7 +173,7 @@ func _spawn_bases() -> void:
 			continue
 		base_node.is_player = index == 0
 		base_node.team_id = team_id
-		game.initialize_resources_for_actor(team_id)
+		game.add_team(team_id)
 		base_node.team_color = game.get_team_color(base_node.team_id)
 		var footprint: Vector2i = Vector2i(max(base_node.width_in_tiles, 1), max(base_node.height_in_tiles, 1))
 		var origin: Vector2i = _base_origin_for_index(index, spawn_count, footprint, grid_size, placed)
@@ -328,6 +301,8 @@ func _show_tile_details(tile: Vector2i) -> void:
 	var harvestable: bool = terrain_map.is_tile_harvestable(tile)
 	var marked: bool = terrain_map.is_tile_marked_for_harvest(tile)
 	info_panel.show_tile_info(type_name, passable, speed, tile, harvestable, marked, health, max_health)
+	if harvestable:
+		context_panel.set_context(context_panel.HARVESTING_CONTEXT, true)
 	_selected_tile = tile
 	_selected_tiles = [tile]
 	_reset_tile_refresh()
@@ -399,6 +374,8 @@ func _apply_multi_tile_selection(tiles: Array[Vector2i]) -> void:
 		selection_highlight.show_edges(_tile_edge_segments(tiles))
 	if info_panel:
 		info_panel.show_tiles_info(tiles.size(), harvestable_count, marked_count, markable_count, tiles[0])
+	if harvestable_count > 0:
+		context_panel.set_context(context_panel.HARVESTING_CONTEXT, true)
 	_reset_tile_refresh()
 
 func _count_harvestable(tiles: Array[Vector2i]) -> int:
@@ -453,7 +430,7 @@ func _select_structure_at(world_position: Vector2) -> bool:
 				var max_hp: int = int(max_hp_val) if max_hp_val != null else 0
 				info_panel.show_structure_info("Base", hp, max_hp, _owner_label(building))
 				if building.is_player:
-					context_panel.set_context(context_panel.BASE_CONTEXT, _base_context)
+					context_panel.set_context(context_panel.BASE_CONTEXT)
 			#elif building is SpearmanBarracks:
 				#var hp_val: Variant = building.get("health") if building.has_method("get") else 0
 				#var max_hp_val: Variant = building.get("max_health") if building.has_method("get") else 0

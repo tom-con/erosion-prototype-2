@@ -2,8 +2,6 @@ extends Node
 
 
 var time_elapsed: float = 0.0
-var team_colors: Dictionary = {}
-var resource_pools: Dictionary = {}
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _selected_colors: PackedColorArray = []
 
@@ -15,28 +13,34 @@ const INITIAL_RESOURCES: Dictionary = {
 	"iron": 0
 }
 
+var teams: Dictionary = {}
+
 func _ready() -> void:
 	_rng.randomize()
 
 func _physics_process(delta: float) -> void:
 	time_elapsed += delta
 
-func initialize_resources_for_actor(team_key: String) -> void:
-	if resource_pools.has(team_key):
-		return
-	resource_pools[team_key] = INITIAL_RESOURCES.duplicate()
-	
-func get_resource_pool_for_team_id(team_id: String) -> Dictionary:
-	if not resource_pools.has(team_id):
+func add_team(team_key: String) -> void:
+	if not teams.has(team_key):
+		var team_color: Color = _select_color_for_actor()
+		teams[team_key] = {
+			"resources": INITIAL_RESOURCES.duplicate(),
+			"color": team_color
+		}
+
+func get_teams() -> Array:
+	return teams.keys()
+
+func get_resource_pool_for_team_id(team_key: String) -> Dictionary:
+	if not teams.has(team_key):
 		return {}
-	return resource_pools.get(team_id)
+	return teams.get(team_key).get("resources")
 
 func get_team_color(team_key: String) -> Color:
-	if team_colors.has(team_key):
-		return team_colors[team_key]
-	var color: Color = _select_color_for_actor()
-	team_colors[team_key] = color
-	return color
+	if not teams.has(team_key):
+		return Color.WHITE
+	return teams.get(team_key).get("color")
 
 func _select_color_for_actor() -> Color:
 	var i: float = _rng.randf()

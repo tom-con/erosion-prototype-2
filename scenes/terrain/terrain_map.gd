@@ -64,7 +64,7 @@ const TERRAIN_TYPES: Dictionary = {
 	"sparse_forest": {
 		"color": Color(0.1, 0.4, 0.15),
 		"texture": "sparse_forest",
-		"speed": 0.7,
+		"speed": 0.5,
 		"passable": true,
 		"buildable": false,
 		"resource_type": "wood",
@@ -108,7 +108,7 @@ const TERRAIN_TYPES: Dictionary = {
 	"sand": {
 		"color": Color(0.78, 0.69, 0.5),
 		"texture": "sand",
-		"speed": 0.85,
+		"speed": 0.8,
 		"passable": true,
 		"buildable": true,
 		"resource_type": "",

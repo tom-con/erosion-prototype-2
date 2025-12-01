@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://kna1umu1lyki"]
+[gd_scene load_steps=10 format=3 uid="uid://kna1umu1lyki"]
 
 [ext_resource type="PackedScene" uid="uid://bm6ky3t6ni7tw" path="res://scenes/terrain/TerrainMap.tscn" id="1_glv2v"]
 [ext_resource type="Script" uid="uid://bi0jm4ahlrs54" path="res://main.gd" id="1_r0du0"]
@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://1o7brk0wgsef" path="res://scenes/ui/panels/InfoPanel.tscn" id="4_3dxm6"]
 [ext_resource type="PackedScene" uid="uid://bwmevbtibwtnf" path="res://scenes/ui/panels/ActionPanel.tscn" id="4_cm0pq"]
 [ext_resource type="PackedScene" uid="uid://dge007vcluq33" path="res://scenes/ui/panels/ResourcePanel.tscn" id="5_lgr22"]
+[ext_resource type="PackedScene" uid="uid://dj4ctp2w0nyv6" path="res://scenes/ui/panels/player_panel.tscn" id="6_03owx"]
 [ext_resource type="PackedScene" uid="uid://u8w0kvhutlt2" path="res://scenes/vfx/selection_highlight.tscn" id="8_trn2v"]
 
 [node name="Main" type="Node2D"]
@@ -23,6 +24,8 @@ metadata/_edit_use_anchors_ = true
 [node name="InfoPanel" parent="CanvasLayer" instance=ExtResource("4_3dxm6")]
 
 [node name="ResourcePanel" parent="CanvasLayer" instance=ExtResource("5_lgr22")]
+
+[node name="PlayerPanel" parent="CanvasLayer" instance=ExtResource("6_03owx")]
 
 [node name="TerrainMap" parent="." instance=ExtResource("1_glv2v")]
 map_size = "large"

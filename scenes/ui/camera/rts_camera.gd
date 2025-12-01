@@ -10,6 +10,7 @@ extends Camera2D
 @export var zoom_min: float = 0.4                # smaller = closer in
 @export var zoom_max: float = 3                # larger = farther out
 @export var zoom_lerp: float = 12.0               # zoom lerp snappiness
+@export var pan_gesture_zoom_sensitivity: float = 0.08 # scales trackpad pinch delta
 
 @export var map_world_rect: Rect2 = Rect2(Vector2.ZERO, Vector2(4096, 2304))
 @export var tilemap_path: NodePath = "/root/Main/TerrainMap"
@@ -58,12 +59,29 @@ func _input(event: InputEvent) -> void:
 		_dragging = false
 		get_viewport().set_input_as_handled()
 		
-	if event.is_action_pressed("zoom_in") or (event is InputEventMagnifyGesture and event.factor > 1.0):
-		_target_zoom = max(zoom_min, _target_zoom / zoom_step)
+	if event.is_action_pressed("zoom_in"):
+		_apply_zoom_step(-1.0)
 		get_viewport().set_input_as_handled()
-	if event.is_action_pressed("zoom_out") or (event is InputEventMagnifyGesture and event.factor < 1.0):
-		_target_zoom = min(zoom_max, _target_zoom * zoom_step)
+	elif event.is_action_pressed("zoom_out"):
+		_apply_zoom_step(1.0)
 		get_viewport().set_input_as_handled()
+	elif event is InputEventPanGesture:
+		_apply_pan_gesture_zoom(event as InputEventPanGesture)
+
+func _apply_zoom_step(direction: float) -> void:
+	if direction < 0.0:
+		_target_zoom = max(zoom_min, _target_zoom / (zoom_step * 4))
+	else:
+		_target_zoom = min(zoom_max, _target_zoom * (zoom_step * 4))
+
+func _apply_pan_gesture_zoom(pan_event: InputEventPanGesture) -> void:
+	if pan_event.delta.y == 0.0:
+		return
+
+	var gesture_steps: float = pan_event.delta.y * pan_gesture_zoom_sensitivity
+	var zoom_factor: float = pow(zoom_step, gesture_steps)
+	_target_zoom = clamp(_target_zoom * zoom_factor, zoom_min, zoom_max)
+	get_viewport().set_input_as_handled()
 
 func _physics_process(delta: float) -> void:
 	var desired_move: Vector2 = Vector2.ZERO

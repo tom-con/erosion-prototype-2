@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://cgbj7bw7p7b0l"
+path="res://.godot/imported/worker_animated.aseprite-1d1a7c600ee0e46de10fcb3447fd174e.res"
+
+[deps]
+
+source_file="res://assets/sprites/worker/worker_animated.aseprite"
+dest_files=["res://.godot/imported/worker_animated.aseprite-1d1a7c600ee0e46de10fcb3447fd174e.res"]
+
+[params]
+

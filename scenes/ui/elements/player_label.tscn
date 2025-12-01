@@ -1,0 +1,43 @@
+[gd_scene load_steps=6 format=3 uid="uid://b7vsviamk00ag"]
+
+[ext_resource type="Theme" uid="uid://df3j41nhqmkar" path="res://theme/theme.tres" id="1_kjcnp"]
+[ext_resource type="Script" uid="uid://ddf5btjdwqt6m" path="res://scenes/ui/elements/player_label.gd" id="2_clbs6"]
+[ext_resource type="Shader" uid="uid://0p8gnythujl1" path="res://scenes/vfx/shaders/team_color.gdshader" id="3_clbs6"]
+[ext_resource type="Texture2D" uid="uid://b32xur56ksmcu" path="res://assets/icons/shield_icon.png" id="3_cp8px"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_kjcnp"]
+shader = ExtResource("3_clbs6")
+shader_parameter/team_color = Color(1, 0, 0, 1)
+
+[node name="PlayerLabel" type="HBoxContainer"]
+custom_minimum_size = Vector2(128, 64)
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -542.5
+offset_top = -11.5
+offset_right = 542.5
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme = ExtResource("1_kjcnp")
+script = ExtResource("2_clbs6")
+
+[node name="TextureRect" type="TextureRect" parent="."]
+material = SubResource("ShaderMaterial_kjcnp")
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+texture = ExtResource("3_cp8px")
+expand_mode = 3
+stretch_mode = 5
+
+[node name="Label" type="Label" parent="."]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"LargeLabel"
+text = "Playex X"

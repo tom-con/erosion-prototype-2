@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3 uid="uid://diwlh2a326q2a"]
+
+[ext_resource type="SpriteFrames" uid="uid://c7x6lttttgb45" path="res://assets/sprites/worker/worker_animated.res" id="1_pq6t7"]
+[ext_resource type="Script" uid="uid://be6gmfauu4qkq" path="res://scenes/automatons/worker.gd" id="2_ej0jr"]
+
+[node name="Worker" type="AnimatedSprite2D"]
+sprite_frames = ExtResource("1_pq6t7")
+animation = &"death"
+script = ExtResource("2_ej0jr")

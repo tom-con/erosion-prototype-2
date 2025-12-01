@@ -9,6 +9,99 @@ const BUILDING_CONTEXT = "building"
 const BASE_CONTEXT = "base"
 const NULL_CONTEXT = ""
 
+var harvesting_actions: Array[Dictionary] = [
+	{
+		"id": "harvest",
+		"label": "Harvest",
+		"icon": {
+			"base": "harvest_icon",
+			"hover": "harvest_highlight_icon"
+		},
+		"press_signal": ""
+	},
+	{
+		"id": "unharvest",
+		"label": "Clear",
+		"icon": {
+			"base": "unharvest_icon",
+			"hover": "unharvest_highlight_icon"
+		}
+	}
+]
+
+var building_actions: Array[Dictionary] = [
+	{
+		"id": "stockpile",
+		"label": "Stock",
+		"description": "Another dropoff for resources",
+		"cost": {
+			"wood": 200	
+		},
+		"icon": {
+			"base": "stockpile_icon",
+			"hover": "stockpile_highlight_icon"
+		},
+		"press_signal": ""
+	},
+	{
+		"id": "spearman_barracks",
+		"label": "Spear",
+		"description": "Spearman Barracks will spawn Spearman Units",
+		"cost": {
+			"wood": 800,
+			"stone": 200
+		},
+		"icon": {
+			"base": "spear_icon",
+			"hover": "spear_highlight_icon"
+		},
+		"press_signal": ""
+	},
+		{
+		"id": "archer_barracks",
+		"label": "Archer",
+		"description": "Archer Barracks will spawn Archer Units",
+		"cost": {
+			"wood": 1400,
+			"stone": 400
+		},
+		"icon": {
+			"base": "bow_icon",
+			"hover": "bow_highlight_icon"
+		},
+		"press_signal": ""
+	},
+]
+
+var base_actions: Array[Dictionary] = [
+	{
+		"id": "worker",
+		"label": "Worker",
+		"description": "Buy a new worker to gather resources",
+		"cost": {
+			"food": 50	
+		},
+		"icon": {
+			"base": "worker_icon",
+			"hover": "worker_highlight_icon"
+		},
+		"press_signal": ""
+	},
+	{
+		"id": "spawn_rate",
+		"label": "Spawn Rate",
+		"description": "Increase the rate at which Spearmen spawn",
+		"cost": {
+			"wood": 200,
+			"stone": 200
+		},
+		"icon": {
+			"base": "spawn_rate_icon",
+			"hover": "spawn_rate_highlight_icon"
+		}
+	}
+]
+
 var last_action: String = NULL_CONTEXT
 
 var _entries_cache: Dictionary = {}
@@ -17,12 +110,22 @@ var _current_entries: Dictionary = {}
 func _ready() -> void:
 	_clear_entries()
 
-func set_context(context: String, entries: Array) -> void:
-	if last_action == context or context == NULL_CONTEXT:
+func set_context(context: String, force_open: bool = false) -> void:
+	if (not force_open and last_action == context) or context == NULL_CONTEXT:
 		hide()
 		last_action = NULL_CONTEXT
 		return
 	show()
+	var entries: Array[Dictionary] = []
+	match context:
+		HARVESTING_CONTEXT:
+			entries = harvesting_actions
+		BUILDING_CONTEXT:
+			entries = building_actions
+		BASE_CONTEXT:
+			entries = base_actions
+		_:
+			entries = []
 	_clear_entries()
 	_grid.columns = entries.size()
 	for e in entries:
