@@ -3,6 +3,7 @@ extends Node2D
 @export var player_count: int = 2
 @export var base_scene: PackedScene = preload("res://scenes/buildings/base/Base.tscn")
 @export var map_edge_buffer_tiles: int = 2
+@export var resource_node_radius: int = 10
 
 @onready var camera: Camera2D = $RtsCamera
 @onready var terrain_map: TerrainMap = $TerrainMap
@@ -52,6 +53,7 @@ func _initialize_world() -> void:
 	if terrain_map:
 		_update_camera_bounds()
 		_spawn_bases()
+		_place_resource_nodes()
 		resource_panel.initialize_resources()
 		player_panel.draw_players()
 		_focus_camera_on_player_base()
@@ -218,6 +220,14 @@ func _register_building_in_terrain(node: Node, origin: Vector2i = Vector2i(-1, -
 		var top_left: Vector2 = node.global_position - half_size
 		origin_tile = terrain_map.get_tile_coords(top_left)
 	terrain_map.register_building(node, origin_tile, fp)
+
+func _place_resource_nodes() -> void:
+	if terrain_map == null:
+		return
+	if _bases.is_empty():
+		return
+	for base in _bases:
+		terrain_map.place_resource_nodes_for_base(base, resource_node_radius)
 	
 func _base_origin_for_index(index: int, total: int, footprint: Vector2i, grid_size: Vector2i, placed: Array[Rect2i]) -> Vector2i:
 	var buffer: int = max(map_edge_buffer_tiles, 0)

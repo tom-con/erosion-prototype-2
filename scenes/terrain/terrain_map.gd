@@ -162,7 +162,42 @@ var _tile_source_ids: Dictionary = {}
 var _harvest_layer: TileMapLayer
 var _harvest_tileset: TileSet
 var _harvest_tile_id: int = -1
+var _resource_layer: TileMapLayer
+var _resource_tileset: TileSet
+var _resource_source_ids: Dictionary = {}
+var _resource_nodes: Dictionary = {}
 var _color_textures: Dictionary = {}
+
+const RESOURCE_NODE_CONFIG: Dictionary = {
+	"stone_node": {
+		"resource_type": "stone",
+		"amount": 100
+	},
+	"iron_node": {
+		"resource_type": "iron",
+		"amount": 200
+	},
+	"food_grassland_node": {
+		"resource_type": "food",
+		"amount": 100,
+		"allowed": ["grassland"]
+	},
+	"food_forest_node": {
+		"resource_type": "food",
+		"amount": 100,
+		"allowed": ["dense_forest", "sparse_forest"]
+	},
+	"food_sand_node": {
+		"resource_type": "food",
+		"amount": 100,
+		"allowed": ["sand"]
+	},
+	"food_water_node": {
+		"resource_type": "food",
+		"amount": 100,
+		"allowed": ["river", "ocean"]
+	}
+}
 
 func _setup_tilemap() -> void:
 	if _tile_map == null:
@@ -179,6 +214,12 @@ func _setup_tilemap() -> void:
 		_harvest_layer.name = "HarvestLayer"
 		if _harvest_layer.get_parent() == null:
 			add_child(_harvest_layer)
+	if _resource_layer == null:
+		var res_existing: TileMapLayer = get_node_or_null("ResourceLayer")
+		_resource_layer = res_existing if res_existing else TileMapLayer.new()
+		_resource_layer.name = "ResourceLayer"
+		if _resource_layer.get_parent() == null:
+			add_child(_resource_layer)
 	_tileset = TileSet.new()
 	_tile_source_ids.clear()
 	for type_name in TERRAIN_TYPES.keys():
@@ -211,6 +252,24 @@ func _setup_tilemap() -> void:
 		_harvest_tileset.add_source(source, _harvest_tile_id)
 	_harvest_layer.tile_set = _harvest_tileset
 	_harvest_layer.position = Vector2.ZERO
+
+	_resource_tileset = TileSet.new()
+	_resource_tileset.tile_size = Vector2i(tile_size, tile_size)
+	_resource_source_ids.clear()
+	var node_keys: Array = ImageLibrary.nodes.keys()
+	for node_key in node_keys:
+		var tex: Texture2D = ImageLibrary.get_a_node(str(node_key))
+		if tex == null:
+			continue
+		var source: TileSetAtlasSource = TileSetAtlasSource.new()
+		source.texture = tex
+		source.texture_region_size = tex.get_size()
+		source.create_tile(Vector2i.ZERO)
+		var source_id: int = _resource_source_ids.size()
+		_resource_tileset.add_source(source, source_id)
+		_resource_source_ids[node_key] = source_id
+	_resource_layer.tile_set = _resource_tileset
+	_resource_layer.position = Vector2.ZERO
 
 func _set_tile_map_cell(tile: Vector2i, type_name: String) -> void:
 	if _tile_map == null:
@@ -557,6 +616,39 @@ func _set_harvest_marker(tile: Vector2i, enabled: bool) -> void:
 		_harvest_layer.set_cell(tile, _harvest_tile_id, Vector2i.ZERO)
 	else:
 		_harvest_layer.set_cell(tile, -1)
+
+func set_resource_node(tile: Vector2i, node_key: String) -> bool:
+	if not is_tile_within_bounds(tile):
+		return false
+	if _resource_layer == null:
+		return false
+	if not RESOURCE_NODE_CONFIG.has(node_key):
+		return false
+	if _resource_nodes.has(_tile_key(tile)):
+		return false
+	var source_id: int = _resource_source_ids.get(node_key, -1)
+	if source_id < 0:
+		return false
+	var config: Dictionary = RESOURCE_NODE_CONFIG[node_key]
+	var resource_type: String = config.get("resource_type", "")
+	var amount: int = int(config.get("amount", 0))
+	if resource_type == "" or amount <= 0:
+		return false
+	_resource_nodes[_tile_key(tile)] = {
+		"node_key": node_key,
+		"resource_type": resource_type,
+		"health": amount,
+		"amount": amount
+	}
+	_resource_layer.set_cell(tile, source_id, Vector2i.ZERO)
+	_harvest_fail_cache.clear()
+	return true
+
+func clear_resource_node(tile: Vector2i) -> void:
+	if _resource_layer:
+		_resource_layer.set_cell(tile, -1)
+	_resource_nodes.erase(_tile_key(tile))
+	_harvest_fail_cache.clear()
 	
 func _set_tile_type(tile: Vector2i, type_name: String) -> void:
 	if not is_tile_within_bounds(tile):
@@ -639,6 +731,9 @@ func get_tile_center(tile: Vector2i) -> Vector2:
 func is_tile_harvestable(tile: Vector2i) -> bool:
 	if not is_tile_within_bounds(tile):
 		return false
+	var node: Dictionary = _resource_nodes.get(_tile_key(tile), {})
+	if not node.is_empty():
+		return int(node.get("health", 0)) > 0
 	var cell: Dictionary = _grid[tile.y][tile.x]
 	if cell.is_empty():
 		return false
@@ -696,6 +791,31 @@ func _update_mark_after_harvest(tile: Vector2i, was_marked: bool) -> void:
 func harvest_tile(tile: Vector2i, max_collect: int = 0) -> Dictionary:
 	if not is_tile_within_bounds(tile):
 		return {}
+	var key: String = _tile_key(tile)
+	var node: Dictionary = _resource_nodes.get(key, {})
+	if not node.is_empty():
+		var res_type: String = node.get("resource_type", "")
+		var health: int = int(node.get("health", 0))
+		var amount: int = int(node.get("amount", health))
+		if res_type == "" or health <= 0 or amount <= 0:
+			clear_resource_node(tile)
+			_update_mark_after_harvest(tile, is_tile_marked_for_harvest(tile))
+			return {}
+		var desired: int = amount if max_collect <= 0 else min(amount, max_collect)
+		var collected: int = min(desired, health)
+		if collected <= 0:
+			return {}
+		node["health"] = max(0, health - collected)
+		_resource_nodes[key] = node
+		var depleted_node: bool = node["health"] <= 0
+		if depleted_node:
+			clear_resource_node(tile)
+			_update_mark_after_harvest(tile, is_tile_marked_for_harvest(tile))
+		return {
+			"resource_type": res_type,
+			"amount": collected,
+			"depleted": depleted_node
+		}
 	var cell: Dictionary = _grid[tile.y][tile.x]
 	if cell.is_empty():
 		return {}
@@ -865,10 +985,132 @@ func _build_astar_grid(blockers: Dictionary) -> void:
 
 func get_path_to_goal(origin: Vector2i, destination: Vector2i) -> PackedVector2Array:
 	return _astar.get_point_path(origin, destination)
-				
+					
 func _is_tile_blocked(tile: Vector2i, blockers: Dictionary) -> bool:
 	var key: String = _tile_key(tile)
 	return blockers.get(key, false)
+
+func _resource_node_at(tile: Vector2i) -> Dictionary:
+	return _resource_nodes.get(_tile_key(tile), {})
+
+func _count_resource_tiles(center: Vector2i, radius: int, resource_type: String) -> int:
+	var count: int = 0
+	var x_min: int = max(center.x - radius, 0)
+	var x_max: int = min(center.x + radius, _cols - 1)
+	var y_min: int = max(center.y - radius, 0)
+	var y_max: int = min(center.y + radius, _rows - 1)
+	for y in range(y_min, y_max + 1):
+		for x in range(x_min, x_max + 1):
+			var tile: Vector2i = Vector2i(x, y)
+			var cell: Dictionary = _grid[y][x]
+			if cell.is_empty():
+				continue
+			var data: Dictionary = cell.get("data", {})
+			if data.get("resource_type", "") != resource_type:
+				continue
+			if int(data.get("health", data.get("harvest_amount", 0))) <= 0:
+				continue
+			if max(abs(x - center.x), abs(y - center.y)) <= radius:
+				count += 1
+	return count
+
+func _count_resource_nodes(center: Vector2i, radius: int, resource_type: String) -> int:
+	var count: int = 0
+	for key in _resource_nodes.keys():
+		var node: Dictionary = _resource_nodes[key]
+		if node.get("resource_type", "") != resource_type:
+			continue
+		var tile: Vector2i = _tile_from_key(key)
+		if max(abs(tile.x - center.x), abs(tile.y - center.y)) > radius:
+			continue
+		if int(node.get("health", 0)) <= 0:
+			continue
+		count += 1
+	return count
+
+func place_resource_nodes_for_base(base: BaseBuilding, radius: int = 10) -> void:
+	if base == null or not is_instance_valid(base):
+		return
+	var center_tile: Vector2i = get_tile_coords(base.global_position)
+	var stone_existing: int = _count_resource_tiles(center_tile, radius, "stone") + _count_resource_nodes(center_tile, radius, "stone")
+	var stone_needed: int = max(0, 20 - stone_existing)
+	if stone_needed > 0:
+		_place_nodes_random(center_tile, radius, ["stone_node"], stone_needed)
+	var food_existing: int = _count_resource_nodes(center_tile, radius, "food")
+	var food_needed: int = max(0, 20 - food_existing)
+	if food_needed > 0:
+		_place_food_nodes(center_tile, radius, food_needed)
+
+func _place_nodes_random(center: Vector2i, radius: int, node_keys: Array, count: int) -> void:
+	if count <= 0 or node_keys.is_empty():
+		return
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.randomize()
+	var candidates: Array[Vector2i] = []
+	for y in range(max(center.y - radius, 0), min(center.y + radius, _rows - 1) + 1):
+		for x in range(max(center.x - radius, 0), min(center.x + radius, _cols - 1) + 1):
+			var tile: Vector2i = Vector2i(x, y)
+			if max(abs(tile.x - center.x), abs(tile.y - center.y)) > radius:
+				continue
+			if not is_tile_passable(tile):
+				continue
+			if _resource_nodes.has(_tile_key(tile)):
+				continue
+			candidates.append(tile)
+	candidates.shuffle()
+	var placed: int = 0
+	for tile in candidates:
+		var idx: int = rng.randi_range(0, node_keys.size() - 1)
+		if set_resource_node(tile, node_keys[idx]):
+			placed += 1
+		if placed >= count:
+			break
+
+func _allowed_food_node_for_tile(tile_type: String) -> String:
+	for key in RESOURCE_NODE_CONFIG.keys():
+		var cfg: Dictionary = RESOURCE_NODE_CONFIG[key]
+		if cfg.get("resource_type", "") != "food":
+			continue
+		var allowed: Array = cfg.get("allowed", [])
+		if allowed.has(tile_type):
+			return key
+	return ""
+
+func _place_food_nodes(center: Vector2i, radius: int, count: int) -> void:
+	if count <= 0:
+		return
+	var candidates: Array[Vector2i] = []
+	for y in range(max(center.y - radius, 0), min(center.y + radius, _rows - 1) + 1):
+		for x in range(max(center.x - radius, 0), min(center.x + radius, _cols - 1) + 1):
+			var tile: Vector2i = Vector2i(x, y)
+			if max(abs(tile.x - center.x), abs(tile.y - center.y)) > radius:
+				continue
+			if not is_tile_passable(tile):
+				continue
+			if _resource_nodes.has(_tile_key(tile)):
+				continue
+			var cell: Dictionary = _grid[y][x]
+			if cell.is_empty():
+				continue
+			var tile_type: String = cell.get("type", "")
+			var node_key: String = _allowed_food_node_for_tile(tile_type)
+			if node_key == "":
+				continue
+			candidates.append(tile)
+	candidates.shuffle()
+	var placed: int = 0
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.randomize()
+	for tile in candidates:
+		var cell: Dictionary = _grid[tile.y][tile.x]
+		var tile_type: String = cell.get("type", "")
+		var node_key: String = _allowed_food_node_for_tile(tile_type)
+		if node_key == "":
+			continue
+		if set_resource_node(tile, node_key):
+			placed += 1
+		if placed >= count:
+			break
 
 func _update_astar_for_tile(tile: Vector2i) -> void:
 	if _cols <= 0 or _rows <= 0:
