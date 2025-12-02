@@ -1,7 +1,8 @@
 extends PanelContainer
 class_name PlayerPanel
 
-@onready var _player_label: PackedScene = load("res://scenes/ui/elements/player_label.tscn")
+var _player_label: PackedScene = preload("res://scenes/ui/elements/player_label.tscn")
+
 @onready var _game: Game = get_node_or_null("/root/Game")
 @onready var _vbox: VBoxContainer = get_node("MarginContainer/VBoxContainer")
 

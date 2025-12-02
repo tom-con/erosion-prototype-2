@@ -4,7 +4,8 @@ class_name ContextPanel
 signal mark_tiles_for_harvest()
 signal unmark_tiles_for_harvest()
 
-@onready var _cost_label_scene: PackedScene = load("res://scenes/ui/elements/cost_label.tscn")
+var _cost_label_scene: PackedScene = preload("res://scenes/ui/elements/cost_label.tscn")
+
 @onready var _grid: GridContainer = get_node("MarginContainer/GridContainer")
 
 const HARVESTING_CONTEXT = "harvesting"

@@ -757,7 +757,6 @@ func find_nearest_harvestable_tile(start_tile: Vector2i, max_radius: int = 12) -
 		var was_failed: bool = fail_cache.has(key)
 		#print(was_failed)
 		if not was_failed and is_tile_harvestable(current):
-			print("FOUND TARGET")
 			return current
 		if not was_failed:
 			fail_cache[key] = true

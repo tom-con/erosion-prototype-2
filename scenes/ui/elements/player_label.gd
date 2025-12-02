@@ -1,7 +1,8 @@
 extends HBoxContainer
 class_name PlayerLabel
 
-@onready var shader: Shader = load("res://scenes/vfx/shaders/team_color.gdshader")
+var shader: Shader = preload("res://scenes/vfx/shaders/team_color.gdshader")
+
 @onready var tex_rect: TextureRect = $TextureRect
 @onready var label: Label = $Label
 

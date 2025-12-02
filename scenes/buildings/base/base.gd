@@ -23,11 +23,12 @@ var health: int
 @export var initial_worker_count: int = 2
 @export var spawn_interval: float = 15.0
 
+var _worker_scene: PackedScene = preload("res://scenes/automatons/worker.tscn")
+
 @onready var _collision_shape: CollisionShape2D = get_node("StaticBody2D/CollisionShape2D")
 @onready var _sprite: Sprite2D = $Sprite2D
 @onready var _terrain_map: TerrainMap = _find_terrain_map()
 @onready var _collider_shape: CollisionShape2D = get_node("StaticBody2D/CollisionShape2D")
-@onready var _worker_scene: PackedScene = load("res://scenes/automatons/worker.tscn")
 
 # --- Internal State ---
 

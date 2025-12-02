@@ -1,7 +1,8 @@
 extends PanelContainer
 class_name ResourcePanel
 
-@onready var _cost_label_scene = load("res://scenes/ui/elements/cost_label.tscn")
+var _cost_label_scene = preload("res://scenes/ui/elements/cost_label.tscn")
+
 @onready var _game: Node = get_node_or_null("/root/Game")
 @onready var _container: HBoxContainer = get_node("MarginContainer/HBoxContainer")
 
@@ -17,7 +18,6 @@ func initialize_resources() -> void:
 	_render_resources_for_player(resource_pool)
 	
 func _render_resources_for_player(resource_pool: Dictionary) -> void:
-	print(resource_pool)
 	for r in resource_pool.keys():
 		var amount: int = resource_pool[r]
 		var cost_label: CostLabel = _resources.get(r) if _resources.has(r) else _cost_label_scene.instantiate()
