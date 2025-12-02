@@ -6,3 +6,5 @@
 script = ExtResource("1_edu7d")
 
 [node name="TileLayer" type="TileMapLayer" parent="."]
+
+[node name="HarvestLayer" type="TileMapLayer" parent="."]

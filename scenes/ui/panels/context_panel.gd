@@ -1,8 +1,11 @@
 extends PanelContainer
 class_name ContextPanel
 
-@onready var _grid: GridContainer = get_node("MarginContainer/GridContainer")
+signal mark_tiles_for_harvest()
+signal unmark_tiles_for_harvest()
+
 @onready var _cost_label_scene: PackedScene = load("res://scenes/ui/elements/cost_label.tscn")
+@onready var _grid: GridContainer = get_node("MarginContainer/GridContainer")
 
 const HARVESTING_CONTEXT = "harvesting"
 const BUILDING_CONTEXT = "building"
@@ -17,7 +20,7 @@ var harvesting_actions: Array[Dictionary] = [
 			"base": "harvest_icon",
 			"hover": "harvest_highlight_icon"
 		},
-		"press_signal": ""
+		"press_signal": Callable(self, "_mark_selected_for_harvest")
 	},
 	{
 		"id": "unharvest",
@@ -25,7 +28,8 @@ var harvesting_actions: Array[Dictionary] = [
 		"icon": {
 			"base": "unharvest_icon",
 			"hover": "unharvest_highlight_icon"
-		}
+		},
+		"press_signal": Callable(self, "_unmark_selected_for_harvest")
 	}
 ]
 
@@ -109,6 +113,13 @@ var _current_entries: Dictionary = {}
 
 func _ready() -> void:
 	_clear_entries()
+	
+func _mark_selected_for_harvest() -> void:
+	emit_signal("mark_tiles_for_harvest")
+	
+func _unmark_selected_for_harvest() -> void:
+	emit_signal("unmark_tiles_for_harvest")
+	
 
 func set_context(context: String, force_open: bool = false) -> void:
 	if (not force_open and last_action == context) or context == NULL_CONTEXT:
@@ -167,9 +178,10 @@ func _add_entry(definition: Dictionary) -> Dictionary:
 	tex_butt.texture_normal = icon_base
 	tex_butt.texture_hover = icon_hover	
 	
-	tex_butt.pressed.connect(func() -> void:
-		print("Button Pressed: %s" % definition.get("id"))	
-	)
+	if definition.has("press_signal"):
+		tex_butt.pressed.connect(func() -> void:
+			definition["press_signal"].call()
+		)
 
 	var label: Label = Label.new()
 	label.text = definition.get("label", "unknown")

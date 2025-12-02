@@ -55,6 +55,8 @@ func _initialize_world() -> void:
 		resource_panel.initialize_resources()
 		player_panel.draw_players()
 		_focus_camera_on_player_base()
+	context_panel.mark_tiles_for_harvest.connect(_mark_tiles_for_harvest)
+	context_panel.unmark_tiles_for_harvest.connect(_unmark_tiles_for_harvest)
 	
 	
 func _input(event: InputEvent) -> void:
@@ -551,3 +553,11 @@ func _focus_camera_on_player_base() -> void:
 	
 func _owner_label(base: BaseBuilding) -> String:
 	return "You" if base.is_player else "Enemy"
+
+func _mark_tiles_for_harvest() -> void:
+	for tile in _selected_tiles:
+		terrain_map.mark_tile_for_harvest(tile)
+		
+func _unmark_tiles_for_harvest() -> void:
+	for tile in _selected_tiles:
+		terrain_map.unmark_tile_for_harvest(tile)

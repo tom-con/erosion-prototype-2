@@ -159,6 +159,9 @@ var _harvest_fail_cache: Dictionary = {}
 var _tile_map: TileMapLayer
 var _tileset: TileSet
 var _tile_source_ids: Dictionary = {}
+var _harvest_layer: TileMapLayer
+var _harvest_tileset: TileSet
+var _harvest_tile_id: int = -1
 var _color_textures: Dictionary = {}
 
 func _setup_tilemap() -> void:
@@ -170,6 +173,12 @@ func _setup_tilemap() -> void:
 		_tile_map.name = "TileLayer"
 		if _tile_map.get_parent() == null:
 			add_child(_tile_map)
+	if _harvest_layer == null:
+		var harvest_existing: TileMapLayer = get_node_or_null("HarvestLayer")
+		_harvest_layer = harvest_existing if harvest_existing else TileMapLayer.new()
+		_harvest_layer.name = "HarvestLayer"
+		if _harvest_layer.get_parent() == null:
+			add_child(_harvest_layer)
 	_tileset = TileSet.new()
 	_tile_source_ids.clear()
 	for type_name in TERRAIN_TYPES.keys():
@@ -188,6 +197,20 @@ func _setup_tilemap() -> void:
 	_tileset.tile_size = Vector2i(tile_size, tile_size)
 	_tile_map.tile_set = _tileset
 	_tile_map.position = Vector2.ZERO
+
+	_harvest_tileset = TileSet.new()
+	_harvest_tileset.tile_size = Vector2i(tile_size, tile_size)
+	_harvest_tile_id = -1
+	var harvest_tex: Texture2D = _resolve_harvest_texture()
+	if harvest_tex:
+		var source: TileSetAtlasSource = TileSetAtlasSource.new()
+		source.texture = harvest_tex
+		source.texture_region_size = harvest_tex.get_size()
+		source.create_tile(Vector2i.ZERO)
+		_harvest_tile_id = 0
+		_harvest_tileset.add_source(source, _harvest_tile_id)
+	_harvest_layer.tile_set = _harvest_tileset
+	_harvest_layer.position = Vector2.ZERO
 
 func _set_tile_map_cell(tile: Vector2i, type_name: String) -> void:
 	if _tile_map == null:
@@ -266,6 +289,7 @@ func _build_from_layout(rows: PackedStringArray) -> void:
 	_world_rect = Rect2(Vector2.ZERO, Vector2(_cols, _rows) * float(tile_size))
 	_rebuild_blockers()
 	_populate_tilemap_full()
+	_build_astar_grid(_building_blockers)
 	
 func _scan_building_regions(rows: PackedStringArray) -> Array:
 	var regions: Array = []
@@ -332,6 +356,7 @@ func register_building(node: Node, origin_tile: Vector2i, footprint: Vector2i) -
 			var key: String = _tile_key(Vector2i(x, y))
 			_building_blockers[key] = true
 	#_invalidate_spawn_paths()
+	_update_astar_for_rect(origin_tile, footprint)
 	_notify_tiles_changed(origin_tile)
 
 
@@ -347,6 +372,7 @@ func unregister_building(node: Node) -> void:
 			_building_blockers.erase(_tile_key(Vector2i(x, y)))
 	_building_rects.erase(key_id)
 	#_invalidate_spawn_paths()
+	_update_astar_for_rect(rect.position, rect.size)
 	_notify_tiles_changed(rect.position)
 	
 # This is an algorithm to return an Array of Vector2i Coords, defining a rectangular region.
@@ -468,6 +494,7 @@ func _build_from_noise(cols: int, rows: int, rand_seed: int) -> void:
 	_world_rect = Rect2(Vector2.ZERO, Vector2(_cols, _rows) * float(tile_size))
 	_rebuild_blockers()
 	_populate_tilemap_full()
+	_build_astar_grid(_building_blockers)
 
 func _normalize_noise(value: float) -> float:
 	# FastNoiseLite returns -1..1
@@ -514,6 +541,22 @@ func _resolve_tile_texture(tex_key: String, info: Dictionary) -> Texture2D:
 		var tex: ImageTexture = ImageTexture.create_from_image(img)
 		_color_textures[color] = tex
 	return _color_textures[color]
+
+func _resolve_harvest_texture() -> Texture2D:
+	if ImageLibrary.has_icon("harvest_highlight_icon"):
+		return ImageLibrary.get_icon("harvest_highlight_icon")
+	# Fallback: simple green square
+	var fallback: Image = Image.create(tile_size, tile_size, false, Image.FORMAT_RGBA8)
+	fallback.fill(Color(0, 1, 0, 0.6))
+	return ImageTexture.create_from_image(fallback)
+
+func _set_harvest_marker(tile: Vector2i, enabled: bool) -> void:
+	if _harvest_layer == null or _harvest_tile_id < 0:
+		return
+	if enabled:
+		_harvest_layer.set_cell(tile, _harvest_tile_id, Vector2i.ZERO)
+	else:
+		_harvest_layer.set_cell(tile, -1)
 	
 func _set_tile_type(tile: Vector2i, type_name: String) -> void:
 	if not is_tile_within_bounds(tile):
@@ -592,16 +635,6 @@ func get_tile_center(tile: Vector2i) -> Vector2:
 	var offset: Vector2 = Vector2(tile.x + 0.5, tile.y + 0.5) * float(tile_size)
 	return global_position + offset
 	
-func _draw() -> void:
-	if _harvest_tags.is_empty():
-		return
-	for key in _harvest_tags.keys():
-		if not _harvest_tags.get(key, false):
-			continue
-		var tile: Vector2i = _tile_from_key(key)
-		var rect: Rect2 = Rect2(Vector2(tile) * float(tile_size), Vector2(tile_size, tile_size))
-		draw_rect(rect, Color(0, 1, 0, 0.15), true)
-		draw_rect(rect, Color(0, 1, 0, 0.6), false, 1.5)
 			
 func is_tile_harvestable(tile: Vector2i) -> bool:
 	if not is_tile_within_bounds(tile):
@@ -621,6 +654,7 @@ func is_tile_harvestable(tile: Vector2i) -> bool:
 func is_tile_marked_for_harvest(tile: Vector2i) -> bool:
 	var key: String = _tile_key(tile)
 	return _harvest_tags.get(key, false)
+	
 			
 func mark_tile_for_harvest(tile: Vector2i) -> bool:
 	if not is_tile_harvestable(tile):
@@ -629,7 +663,7 @@ func mark_tile_for_harvest(tile: Vector2i) -> bool:
 	if _harvest_tags.get(key, false):
 		return false
 	_harvest_tags[key] = true
-	queue_redraw()
+	_set_harvest_marker(tile, true)
 	emit_signal("harvest_tags_changed", tile, true)
 	return true
 
@@ -645,7 +679,7 @@ func _unmark_tile_internal(tile: Vector2i) -> void:
 	if not _harvest_tags.has(key):
 		return
 	_harvest_tags.erase(key)
-	queue_redraw()
+	_set_harvest_marker(tile, false)
 	emit_signal("harvest_tags_changed", tile, false)
 
 func _update_mark_after_harvest(tile: Vector2i, was_marked: bool) -> void:
@@ -655,10 +689,10 @@ func _update_mark_after_harvest(tile: Vector2i, was_marked: bool) -> void:
 	if is_tile_harvestable(tile):
 		var key: String = _tile_key(tile)
 		_harvest_tags[key] = true
-		queue_redraw()
+		_set_harvest_marker(tile, true)
 	else:
 		_unmark_tile_internal(tile)
-		
+	
 func harvest_tile(tile: Vector2i, max_collect: int = 0) -> Dictionary:
 	if not is_tile_within_bounds(tile):
 		return {}
@@ -838,7 +872,12 @@ func _is_tile_blocked(tile: Vector2i, blockers: Dictionary) -> bool:
 	return blockers.get(key, false)
 
 func _update_astar_for_tile(tile: Vector2i) -> void:
-	if _astar == null or tile.x < 0 or tile.y < 0 or tile.x >= _cols or tile.y >= _rows:
+	if _cols <= 0 or _rows <= 0:
+		return
+	if _astar == null or _astar.region.size != Vector2i(_cols, _rows):
+		_build_astar_grid(_building_blockers)
+		return
+	if tile.x < 0 or tile.y < 0 or tile.x >= _cols or tile.y >= _rows:
 		return
 	var blocked: bool = _is_tile_blocked(tile, _building_blockers)
 	if blocked:
@@ -857,6 +896,22 @@ func _update_astar_for_tile(tile: Vector2i) -> void:
 	_astar.set_point_solid(tile, false)
 	var weight: float = 1.0 / max(speed, 0.05)
 	_astar.set_point_weight_scale(tile, weight)
+
+func _update_astar_for_rect(origin: Vector2i, size: Vector2i) -> void:
+	if _cols <= 0 or _rows <= 0:
+		return
+	if _astar == null or _astar.region.size != Vector2i(_cols, _rows):
+		_build_astar_grid(_building_blockers)
+		return
+	var x_end: int = origin.x + size.x
+	var y_end: int = origin.y + size.y
+	for y in range(origin.y, y_end):
+		if y < 0 or y >= _rows:
+			continue
+		for x in range(origin.x, x_end):
+			if x < 0 or x >= _cols:
+				continue
+			_update_astar_for_tile(Vector2i(x, y))
 	
 func _notify_tiles_changed(tile: Vector2i = Vector2i(-1, -1)) -> void:
 	emit_signal("tile_changed", tile)
