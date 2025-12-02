@@ -52,9 +52,9 @@ func _initialize_world() -> void:
 	if terrain_map:
 		_update_camera_bounds()
 		_spawn_bases()
-	resource_panel._render_resources_for_player()
-	player_panel.draw_players()
-	_focus_camera_on_player_base()
+		resource_panel.initialize_resources()
+		player_panel.draw_players()
+		_focus_camera_on_player_base()
 	
 	
 func _input(event: InputEvent) -> void:

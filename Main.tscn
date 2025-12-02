@@ -12,6 +12,7 @@
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_r0du0")
+player_count = 3
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 

@@ -8,20 +8,28 @@ class_name ResourcePanel
 var _resources: Dictionary = {}
 
 func _ready() -> void:
-	pass
+	if _game:
+		_game.player_resources_changed.connect(_render_resources_for_player)
+		
 	
-	
-func _render_resources_for_player() -> void:
+func initialize_resources() -> void:
 	var resource_pool: Dictionary = _game.get_resource_pool_for_team_id("player")
+	_render_resources_for_player(resource_pool)
+	
+func _render_resources_for_player(resource_pool: Dictionary) -> void:
+	print(resource_pool)
 	for r in resource_pool.keys():
 		var amount: int = resource_pool[r]
 		var cost_label: CostLabel = _resources.get(r) if _resources.has(r) else _cost_label_scene.instantiate()
 		cost_label.label_size = "medium"
 		cost_label.type = r
-		cost_label.amount = amount
 		
 		if not _resources.has(r):
+			cost_label.amount = amount
 			_resources[r] = cost_label
 			_container.add_child(cost_label)
+		else:
+			cost_label.update_cost(amount)
+		
 		
 		

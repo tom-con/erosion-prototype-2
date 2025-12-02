@@ -1,5 +1,6 @@
 extends Node
 
+signal player_resources_changed(resources: Dictionary)
 
 var time_elapsed: float = 0.0
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
@@ -36,6 +37,14 @@ func get_resource_pool_for_team_id(team_key: String) -> Dictionary:
 	if not teams.has(team_key):
 		return {}
 	return teams.get(team_key).get("resources")
+	
+func add_resources(team_key: String, resources: Dictionary) -> void:
+	if teams.has(team_key):
+		for r in resources.keys():
+			teams[team_key]["resources"][r] = teams[team_key]["resources"][r] + resources[r]
+		if team_key == "player":
+			emit_signal("player_resources_changed", teams[team_key]["resources"])
+		
 
 func get_team_color(team_key: String) -> Color:
 	if not teams.has(team_key):

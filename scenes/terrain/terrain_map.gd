@@ -147,15 +147,92 @@ var _grid: Array = []
 var _cols: int = 0
 var _rows: int = 0
 var _world_rect: Rect2 = Rect2()
-var _blockers: Array[StaticBody2D] = []
+var _blockers: Dictionary = {}
 var _building_regions: Array = []
 var _building_rects: Dictionary = {}
 var _building_blockers: Dictionary = {}
+var _astar: AStarGrid2D = AStarGrid2D.new()
 
 var _harvest_tags: Dictionary = {}
+var _harvest_fail_cache: Dictionary = {}
+
+var _tile_map: TileMapLayer
+var _tileset: TileSet
+var _tile_source_ids: Dictionary = {}
+var _color_textures: Dictionary = {}
+
+func _setup_tilemap() -> void:
+	if _tile_map == null:
+		var existing: TileMapLayer = get_node_or_null("TileMap")
+		if existing == null:
+			existing = get_node_or_null("TileLayer")
+		_tile_map = existing if existing else TileMapLayer.new()
+		_tile_map.name = "TileLayer"
+		if _tile_map.get_parent() == null:
+			add_child(_tile_map)
+	_tileset = TileSet.new()
+	_tile_source_ids.clear()
+	for type_name in TERRAIN_TYPES.keys():
+		var info: Dictionary = TERRAIN_TYPES[type_name]
+		var tex_key: String = info.get("texture", "")
+		var tex: Texture2D = _resolve_tile_texture(tex_key, info)
+		if tex == null:
+			continue
+		var source: TileSetAtlasSource = TileSetAtlasSource.new()
+		source.texture = tex
+		source.texture_region_size = tex.get_size()
+		source.create_tile(Vector2i.ZERO)
+		var source_id: int = _tile_source_ids.size()
+		_tileset.add_source(source, source_id)
+		_tile_source_ids[type_name] = source_id
+	_tileset.tile_size = Vector2i(tile_size, tile_size)
+	_tile_map.tile_set = _tileset
+	_tile_map.position = Vector2.ZERO
+
+func _set_tile_map_cell(tile: Vector2i, type_name: String) -> void:
+	if _tile_map == null:
+		return
+	var source_id: int = _tile_source_ids.get(type_name, -1)
+	if source_id < 0:
+		_tile_map.set_cell(tile, -1)
+		return
+	_tile_map.set_cell(tile, source_id, Vector2i.ZERO)
+
+func _apply_tile_to_map(tile: Vector2i) -> void:
+	if _tile_map == null or tile.y < 0 or tile.y >= _rows or tile.x < 0 or tile.x >= _cols:
+		return
+	var cell: Dictionary = _grid[tile.y][tile.x]
+	if cell.is_empty():
+		_tile_map.set_cell(tile, -1)
+		return
+	var type_name: String = cell.get("type", "")
+	_set_tile_map_cell(tile, type_name)
+
+func _populate_tilemap_full() -> void:
+	if _tile_map == null:
+		return
+	_tile_map.clear()
+	for y in range(_rows):
+		for x in range(_cols):
+			_apply_tile_to_map(Vector2i(x, y))
+	queue_redraw()
+
+func _populate_tilemap_region(origin: Vector2i, size: Vector2i) -> void:
+	if _tile_map == null:
+		return
+	var x_end: int = origin.x + size.x
+	var y_end: int = origin.y + size.y
+	for y in range(origin.y, y_end):
+		if y < 0 or y >= _rows:
+			continue
+		for x in range(origin.x, x_end):
+			if x < 0 or x >= _cols:
+				continue
+			_apply_tile_to_map(Vector2i(x, y))
 
 func _ready() -> void:
 	add_to_group("terrain_map") 
+	_setup_tilemap()
 	if enable_random_generation:
 		random_seed = floor(Time.get_unix_time_from_system())
 	
@@ -164,16 +241,19 @@ func _ready() -> void:
 		_build_from_noise(selected_map_size.cols, selected_map_size.rows, random_seed)
 	else:
 		_build_from_layout(layout_rows)
+	_populate_tilemap_full()
+	queue_redraw()
 		
 func _build_from_layout(rows: PackedStringArray) -> void:
 	if rows.is_empty():
 		return
+	_harvest_fail_cache.clear()
 	_building_rects.clear()
 	_building_blockers.clear()
 	_rows = rows.size()
 	_cols = rows[0].length()
 	_grid.resize(_rows)
-	for y in range(_cols):
+	for y in range(_rows):
 		var row: Array = []
 		row.resize(_cols)
 		var line: String = rows[y]
@@ -185,7 +265,7 @@ func _build_from_layout(rows: PackedStringArray) -> void:
 	_building_regions = _scan_building_regions(rows)
 	_world_rect = Rect2(Vector2.ZERO, Vector2(_cols, _rows) * float(tile_size))
 	_rebuild_blockers()
-	queue_redraw()
+	_populate_tilemap_full()
 	
 func _scan_building_regions(rows: PackedStringArray) -> Array:
 	var regions: Array = []
@@ -230,8 +310,8 @@ func clear_impassable_in_rect(origin: Vector2i, size: Vector2i, new_type: String
 				continue
 			_grid[y][x] = _make_cell(new_type)
 	_rebuild_blockers()
-	queue_redraw()
-	#_notify_tiles_changed(origin)
+	_populate_tilemap_region(origin, size)
+	_notify_tiles_changed(origin)
 	
 func tiles_to_world_rect(origin: Vector2i, size: Vector2i) -> Rect2:
 	var top_left: Vector2 = global_position + Vector2(origin.x * tile_size, origin.y * tile_size)
@@ -252,7 +332,7 @@ func register_building(node: Node, origin_tile: Vector2i, footprint: Vector2i) -
 			var key: String = _tile_key(Vector2i(x, y))
 			_building_blockers[key] = true
 	#_invalidate_spawn_paths()
-	#_notify_tiles_changed(origin_tile)
+	_notify_tiles_changed(origin_tile)
 
 
 func unregister_building(node: Node) -> void:
@@ -267,7 +347,7 @@ func unregister_building(node: Node) -> void:
 			_building_blockers.erase(_tile_key(Vector2i(x, y)))
 	_building_rects.erase(key_id)
 	#_invalidate_spawn_paths()
-	#_notify_tiles_changed(rect.position)
+	_notify_tiles_changed(rect.position)
 	
 # This is an algorithm to return an Array of Vector2i Coords, defining a rectangular region.
 # It returns all coords within the region.
@@ -329,6 +409,12 @@ func _make_region_from_positions(marker: String, coords: Array[Vector2i]) -> Dic
 func _tile_key(tile: Vector2i) -> String:
 	return "%d,%d" % [tile.x, tile.y]
 
+func _tile_from_key(key: String) -> Vector2i:
+	var parts: PackedStringArray = key.split(",")
+	if parts.size() != 2:
+		return Vector2i(-1, -1)
+	return Vector2i(int(parts[0]), int(parts[1]))
+
 func _neighbor_dirs() -> Array:
 	return [
 		Vector2i(1, 0),
@@ -344,6 +430,7 @@ func _neighbor_dirs() -> Array:
 func _build_from_noise(cols: int, rows: int, rand_seed: int) -> void:
 	_cols = max(cols, 1)
 	_rows = max(rows, 1)
+	_harvest_fail_cache.clear()
 	_building_rects.clear()
 	_building_blockers.clear()
 	_grid.resize(_rows)
@@ -380,7 +467,7 @@ func _build_from_noise(cols: int, rows: int, rand_seed: int) -> void:
 	_building_regions = []
 	_world_rect = Rect2(Vector2.ZERO, Vector2(_cols, _rows) * float(tile_size))
 	_rebuild_blockers()
-	queue_redraw()
+	_populate_tilemap_full()
 
 func _normalize_noise(value: float) -> float:
 	# FastNoiseLite returns -1..1
@@ -416,6 +503,17 @@ func _make_cell(type_name: String) -> Dictionary:
 		"type": type_name,
 		"data": instance
 	}
+
+func _resolve_tile_texture(tex_key: String, info: Dictionary) -> Texture2D:
+	if tex_key != "" and ImageLibrary.has_tile(tex_key):
+		return ImageLibrary.get_tile(tex_key)
+	var color: Color = info.get("color", Color.WHITE)
+	if not _color_textures.has(color):
+		var img: Image = Image.create(tile_size, tile_size, false, Image.FORMAT_RGBA8)
+		img.fill(color)
+		var tex: ImageTexture = ImageTexture.create_from_image(img)
+		_color_textures[color] = tex
+	return _color_textures[color]
 	
 func _set_tile_type(tile: Vector2i, type_name: String) -> void:
 	if not is_tile_within_bounds(tile):
@@ -423,23 +521,23 @@ func _set_tile_type(tile: Vector2i, type_name: String) -> void:
 	if not TERRAIN_TYPES.has(type_name):
 		return
 	_grid[tile.y][tile.x] = _make_cell(type_name)
-	queue_redraw()
+	_apply_tile_to_map(tile)
 	call_deferred("_rebuild_blockers")
-	#_notify_tile_changes(tile)
+	_notify_tiles_changed(tile)
 	
 func _rebuild_blockers() -> void:
-	for blocker in _blockers:
-		if is_instance_valid(blocker):
-			blocker.queue_free()
-	_blockers.clear()
-	
+	var desired: Dictionary = {}
 	for y in range(_rows):
 		for x in range(_cols):
-			var cell: Dictionary = _grid[x][y]
+			var cell: Dictionary = _grid[y][x]
 			if not cell:
 				continue
 			var info: Dictionary = cell["data"]
 			if not info.get("passable", true):
+				var key: String = _tile_key(Vector2i(x, y))
+				desired[key] = true
+				if _blockers.has(key):
+					continue
 				var blocker: StaticBody2D = StaticBody2D.new()
 				blocker.name = "Blocker_%d_%d" % [x, y]
 				var shape: CollisionShape2D = CollisionShape2D.new()
@@ -449,7 +547,14 @@ func _rebuild_blockers() -> void:
 				blocker.add_child(shape)
 				blocker.position = Vector2(x * tile_size + tile_size * 0.5, y * tile_size + tile_size * 0.5)
 				add_child(blocker)
-				_blockers.append(blocker)
+				_blockers[key] = blocker
+	for key in _blockers.keys():
+		if desired.has(key):
+			continue
+		var node: Node = _blockers[key]
+		if is_instance_valid(node):
+			node.queue_free()
+		_blockers.erase(key)
 				
 func get_world_rect() -> Rect2:
 	return _world_rect
@@ -488,24 +593,17 @@ func get_tile_center(tile: Vector2i) -> Vector2:
 	return global_position + offset
 	
 func _draw() -> void:
-	if _grid.is_empty():
+	if _harvest_tags.is_empty():
 		return
-	for y in range(_rows):
-		for x in range(_cols):
-			var cell: Dictionary = _grid[y][x]
-			if not cell:
-				continue
-			var info: Dictionary = cell["data"]
-			var color: Color = info.get("color", Color.WHITE)
-			var rect: Rect2 = Rect2(Vector2(x, y) * float(tile_size), Vector2(tile_size, tile_size))
-			if info.has("texture") and ImageLibrary.has_tile(info.get("texture")):
-				var texture: Texture2D = ImageLibrary.get_tile(info.get("texture"))
-				draw_texture_rect(texture, rect, false)
-			else:
-				draw_rect(rect, color, true)
-			draw_rect(rect, Color(0, 0, 0, 0.1), false, 1.0)
+	for key in _harvest_tags.keys():
+		if not _harvest_tags.get(key, false):
+			continue
+		var tile: Vector2i = _tile_from_key(key)
+		var rect: Rect2 = Rect2(Vector2(tile) * float(tile_size), Vector2(tile_size, tile_size))
+		draw_rect(rect, Color(0, 1, 0, 0.15), true)
+		draw_rect(rect, Color(0, 1, 0, 0.6), false, 1.5)
 			
-func is_tile_harvestable(tile: Vector2i, allowed_resources: Array = []) -> bool:
+func is_tile_harvestable(tile: Vector2i) -> bool:
 	if not is_tile_within_bounds(tile):
 		return false
 	var cell: Dictionary = _grid[tile.y][tile.x]
@@ -518,9 +616,7 @@ func is_tile_harvestable(tile: Vector2i, allowed_resources: Array = []) -> bool:
 	var remaining: int = data.get("health", data.get("harvest_amount", 0))
 	if remaining <= 0:
 		return false
-	if allowed_resources.is_empty():
-		return true
-	return allowed_resources.has(resource_type)
+	return true
 	
 func is_tile_marked_for_harvest(tile: Vector2i) -> bool:
 	var key: String = _tile_key(tile)
@@ -591,7 +687,6 @@ func harvest_tile(tile: Vector2i, max_collect: int = 0) -> Dictionary:
 	cell["data"] = data
 	if not depleted:
 		_grid[tile.y][tile.x] = cell
-		queue_redraw()
 		return {
 			"resource_type": resource_type,
 			"amount": collected,
@@ -600,7 +695,7 @@ func harvest_tile(tile: Vector2i, max_collect: int = 0) -> Dictionary:
 	if next_type != "":
 		_set_tile_type(tile, next_type)
 	else:
-		queue_redraw()
+		_apply_tile_to_map(tile)
 	_update_mark_after_harvest(tile, was_marked)
 	return {
 		"resource_type": resource_type,
@@ -608,22 +703,30 @@ func harvest_tile(tile: Vector2i, max_collect: int = 0) -> Dictionary:
 		"depleted": true
 	}
 	
-func find_nearest_harvestable_tile(start_tile: Vector2i, allowed_resources: Array = [], max_radius: int = 12) -> Variant:
+func find_nearest_harvestable_tile(start_tile: Vector2i, max_radius: int = 12) -> Variant:
 	if _cols <= 0 or _rows <= 0:
 		return null
 	var clamped: Vector2i = Vector2i(
 		clamp(start_tile.x, 0, _cols - 1),
 		clamp(start_tile.y, 0, _rows - 1)
 	)
+	if _harvest_fail_cache.is_empty():
+		_harvest_fail_cache = {}
+	var fail_cache: Dictionary = _harvest_fail_cache
 	var queue: Array = []
 	var visited: Dictionary = {}
 	queue.append(clamped)
 	visited[_tile_key(clamped)] = true
-
 	while not queue.is_empty():
 		var current: Vector2i = queue.pop_front()
-		if is_tile_harvestable(current, allowed_resources):
+		var key: String = _tile_key(current)
+		var was_failed: bool = fail_cache.has(key)
+		#print(was_failed)
+		if not was_failed and is_tile_harvestable(current):
+			print("FOUND TARGET")
 			return current
+		if not was_failed:
+			fail_cache[key] = true
 		var dist: int = max(abs(current.x - clamped.x), abs(current.y - clamped.y))
 		if dist >= max_radius:
 			continue
@@ -631,7 +734,7 @@ func find_nearest_harvestable_tile(start_tile: Vector2i, allowed_resources: Arra
 			var next: Vector2i = current + dir
 			if not is_tile_within_bounds(next):
 				continue
-			var key: String = _tile_key(next)
+			key = _tile_key(next)
 			if visited.has(key):
 				continue
 			visited[key] = true
@@ -639,35 +742,34 @@ func find_nearest_harvestable_tile(start_tile: Vector2i, allowed_resources: Arra
 	return null
 
 	
-func find_nearest_marked_tile(start_tile: Vector2i, allowed_resources: Array = [], max_radius: int = 20) -> Variant:
+func find_nearest_marked_tile(start_tile: Vector2i, max_radius: int = 20) -> Variant:
 	if _cols <= 0 or _rows <= 0:
 		return null
 	var clamped: Vector2i = Vector2i(
 		clamp(start_tile.x, 0, _cols - 1),
 		clamp(start_tile.y, 0, _rows - 1)
 	)
-	var queue: Array = []
-	var visited: Dictionary = {}
-	queue.append(clamped)
-	visited[_tile_key(clamped)] = true
-	
-	while not queue.is_empty():
-		var current: Vector2i = queue.pop_front()
-		if is_tile_marked_for_harvest(current) and is_tile_harvestable(current, allowed_resources):
-			return current
-		var dist: int = max(abs(current.x - clamped.x), abs(current.y - clamped.y))
-		if dist >= max_radius:
+	var best: Vector2i = Vector2i(-1, -1)
+	var best_dist: int = max_radius + 1
+	for key in _harvest_tags.keys():
+		if not _harvest_tags.get(key, false):
 			continue
-		for dir in _neighbor_dirs():
-			var next: Vector2i = current + dir
-			if not is_tile_within_bounds(next):
-				continue
-			var key: String = _tile_key(next)
-			if visited.has(key):
-				continue
-			visited[key] = true
-			queue.append(next)
-	return null
+		var tile: Vector2i = _tile_from_key(key)
+		if tile.x < 0 or tile.y < 0 or not is_tile_within_bounds(tile):
+			continue
+		var dist: int = max(abs(tile.x - clamped.x), abs(tile.y - clamped.y))
+		if dist > max_radius:
+			continue
+		if not is_tile_harvestable(tile):
+			continue
+		if dist < best_dist:
+			best_dist = dist
+			best = tile
+	if best.x >= 0:
+		return best
+	else:
+		return null
+
 
 func get_speed_multiplier(world_position: Vector2) -> float:
 	var cell: Dictionary = get_cell_at_world(world_position)
@@ -693,3 +795,69 @@ func is_tile_passable(tile: Vector2i) -> bool:
 	if not cell["data"].get("passable", true):
 		return false
 	return not _building_blockers.get(_tile_key(tile), false)
+	
+
+func _build_astar_grid(blockers: Dictionary) -> void:
+	if _cols <= 0 or _rows <= 0:
+		return
+	if _astar == null:
+		_astar = AStarGrid2D.new()
+	_astar.region = Rect2i(Vector2i.ZERO, Vector2i(_cols, _rows))
+	_astar.cell_size = Vector2(tile_size, tile_size)
+	_astar.offset = global_position + Vector2(tile_size, tile_size) * 0.5
+	_astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
+	_astar.update()
+	
+	for y in range(_rows):
+		for x in range(_cols):
+			var tile: Vector2i = Vector2i(x, y)
+			var key: String = _tile_key(tile)
+			var blocked: bool = _is_tile_blocked(tile, blockers)
+			if blocked:
+				_astar.set_point_solid(tile, true)
+				continue
+			var cell: Dictionary = _grid[y][x]
+			if cell.is_empty():
+				_astar.set_point_solid(tile, false)
+				continue
+			var data: Dictionary = cell.get("data", {})
+			var passable: bool = data.get("passable", true)
+			var speed: float = data.get("speed", 1.0)
+			if not passable or speed <= 0.0:
+				_astar.set_point_solid(tile, true)
+			else:
+				_astar.set_point_solid(tile, false)
+				var weight: float = 1.0 / max(speed, 0.05)
+				_astar.set_point_weight_scale(tile, weight)
+
+func get_path_to_goal(origin: Vector2i, destination: Vector2i) -> PackedVector2Array:
+	return _astar.get_point_path(origin, destination)
+				
+func _is_tile_blocked(tile: Vector2i, blockers: Dictionary) -> bool:
+	var key: String = _tile_key(tile)
+	return blockers.get(key, false)
+
+func _update_astar_for_tile(tile: Vector2i) -> void:
+	if _astar == null or tile.x < 0 or tile.y < 0 or tile.x >= _cols or tile.y >= _rows:
+		return
+	var blocked: bool = _is_tile_blocked(tile, _building_blockers)
+	if blocked:
+		_astar.set_point_solid(tile, true)
+		return
+	var cell: Dictionary = _grid[tile.y][tile.x]
+	if cell.is_empty():
+		_astar.set_point_solid(tile, false)
+		return
+	var data: Dictionary = cell.get("data", {})
+	var passable: bool = data.get("passable", true)
+	var speed: float = data.get("speed", 1.0)
+	if not passable or speed <= 0.0:
+		_astar.set_point_solid(tile, true)
+		return
+	_astar.set_point_solid(tile, false)
+	var weight: float = 1.0 / max(speed, 0.05)
+	_astar.set_point_weight_scale(tile, weight)
+	
+func _notify_tiles_changed(tile: Vector2i = Vector2i(-1, -1)) -> void:
+	emit_signal("tile_changed", tile)
+	_update_astar_for_tile(tile)

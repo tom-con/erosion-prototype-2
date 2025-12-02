@@ -7,8 +7,8 @@ extends Camera2D
 
 @export var move_lerp: float = 50.0               # pan lerp snappiness
 @export var zoom_step: float = 1.3              # wheel zoom factor per step
-@export var zoom_min: float = 0.4                # smaller = closer in
-@export var zoom_max: float = 3                # larger = farther out
+@export var zoom_min: float = 0.4               # smaller = closer in
+@export var zoom_max: float = 8                # larger = farther out
 @export var zoom_lerp: float = 12.0               # zoom lerp snappiness
 @export var pan_gesture_zoom_sensitivity: float = 0.08 # scales trackpad pinch delta
 
