@@ -216,6 +216,30 @@ func _deposit_target_tile() -> Vector2i:
 	var dropoff: Node = _nearest_dropoff()
 	if dropoff:
 		var tile: Vector2i = _terrain_map.get_tile_coords(dropoff.get_collision_center())
+		# If the dropoff exposes its footprint, pick the closest perimeter tile to this worker
+		if dropoff.has_method("get_collision_rect"):
+			var rect: Rect2 = dropoff.get_collision_rect()
+			var top_left: Vector2i = _terrain_map.get_tile_coords(rect.position)
+			var bottom_right: Vector2i = _terrain_map.get_tile_coords(rect.position + rect.size)
+			var best: Vector2i = Vector2i(-1, -1)
+			var best_dist: float = INF
+			for y in range(top_left.y, bottom_right.y + 1):
+				for x in range(top_left.x, bottom_right.x + 1):
+					# Only consider perimeter cells around the rectangle
+					var on_edge: bool = x == top_left.x or x == bottom_right.x or y == top_left.y or y == bottom_right.y
+					if not on_edge:
+						continue
+					var candidate: Vector2i = Vector2i(x, y)
+					if not _terrain_map.is_tile_within_bounds(candidate):
+						continue
+					if not _terrain_map.is_tile_passable(candidate):
+						continue
+					var dist: float = _terrain_map.get_tile_center(candidate).distance_to(global_position)
+					if dist < best_dist:
+						best_dist = dist
+						best = candidate
+			if best.x >= 0:
+				return best
 		var neighbor: Vector2i = _find_passable_neighbor(tile)
 		if neighbor.x >= 0:
 			return neighbor
