@@ -7,6 +7,7 @@ signal unmark_tiles_for_harvest()
 var _cost_label_scene: PackedScene = preload("res://scenes/ui/elements/cost_label.tscn")
 
 @onready var _grid: GridContainer = get_node("MarginContainer/GridContainer")
+@onready var _game: Game = get_node("/root/Game")
 
 const HARVESTING_CONTEXT = "harvesting"
 const BUILDING_CONTEXT = "building"
@@ -39,9 +40,7 @@ var building_actions: Array[Dictionary] = [
 		"id": "stockpile",
 		"label": "Stock",
 		"description": "Another dropoff for resources",
-		"cost": {
-			"wood": 200	
-		},
+		"cost_type": "core",
 		"icon": {
 			"base": "stockpile_icon",
 			"hover": "stockpile_highlight_icon"
@@ -52,10 +51,7 @@ var building_actions: Array[Dictionary] = [
 		"id": "spearman_barracks",
 		"label": "Spear",
 		"description": "Spearman Barracks will spawn Spearman Units",
-		"cost": {
-			"wood": 800,
-			"stone": 200
-		},
+		"cost_type": "core",
 		"icon": {
 			"base": "spear_icon",
 			"hover": "spear_highlight_icon"
@@ -66,10 +62,7 @@ var building_actions: Array[Dictionary] = [
 		"id": "archer_barracks",
 		"label": "Archer",
 		"description": "Archer Barracks will spawn Archer Units",
-		"cost": {
-			"wood": 1400,
-			"stone": 400
-		},
+		"cost_type": "core",
 		"icon": {
 			"base": "bow_icon",
 			"hover": "bow_highlight_icon"
@@ -83,9 +76,7 @@ var base_actions: Array[Dictionary] = [
 		"id": "worker",
 		"label": "Worker",
 		"description": "Buy a new worker to gather resources",
-		"cost": {
-			"food": 50	
-		},
+		"cost_type": "core",
 		"icon": {
 			"base": "worker_icon",
 			"hover": "worker_highlight_icon"
@@ -96,10 +87,7 @@ var base_actions: Array[Dictionary] = [
 		"id": "spawn_rate",
 		"label": "Spawn Rate",
 		"description": "Increase the rate at which Spearmen spawn",
-		"cost": {
-			"wood": 200,
-			"stone": 200
-		},
+		"cost_type": "structure",
 		"icon": {
 			"base": "spawn_rate_icon",
 			"hover": "spawn_rate_highlight_icon"
@@ -157,7 +145,18 @@ func _clear_entries() -> void:
 	_current_entries.clear()
 	for child in _grid.get_children():
 		child.hide()
-	#
+	
+func _get_cost_for_core_action_id(id: String) -> Dictionary:
+	if not _game:
+		return {}
+	return _game.get_core_cost_for_team("player", id)
+	
+func _get_cost_for_structure_upgrade_action_id(structure_id: String, id: String) -> Dictionary:
+	if not _game:
+		return {}
+	return _game.get_structure_upgrade_cost_for_team("player", structure_id, id)
+	
+	
 func _add_entry(definition: Dictionary) -> Dictionary:
 	var container: VBoxContainer = VBoxContainer.new()
 	container.custom_minimum_size = Vector2(200, 120)
@@ -194,8 +193,10 @@ func _add_entry(definition: Dictionary) -> Dictionary:
 	container.add_child(label)
 	container.add_child(tex_butt)
 	
-	if definition.has("cost"):
-		var cost_info: Dictionary = definition.get("cost")
+	if definition.has("cost_type"):
+		var cost_id: String = definition.get("id")
+		var cost_type: String = definition.get("cost_type")
+		var cost_info: Dictionary = _game.get_core_cost_for_team("player", cost_id) if cost_type == "core" else _game.get_structure_upgrade_cost_for_team("player", "base", cost_id)
 		for ci in cost_info.keys():
 			var amount = cost_info.get(ci)
 			var cost_label: CostLabel = _cost_label_scene.instantiate()

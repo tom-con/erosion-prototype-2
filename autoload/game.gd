@@ -14,6 +14,33 @@ const INITIAL_RESOURCES: Dictionary = {
 	"iron": 0
 }
 
+const INITIAL_CORE_COSTS: Dictionary = {
+	"archer_barracks": {
+		"wood": 2000,
+		"stone":1200,
+		"food": 400	
+	},
+	"spearman_barracks": {
+		"wood": 800,
+		"stone": 800,
+		"food": 200
+	},
+	"stockpile": {
+		"wood": 400
+	},
+	"worker": {
+		"food": 100
+	}
+}
+
+const INITIAL_STRUCTURE_UPGRADE_COSTS: Dictionary = {
+	"spawn_rate": {
+		"wood": 300,
+		"stone": 300,
+		"food": 100
+	}
+}
+
 var teams: Dictionary = {}
 
 func _ready() -> void:
@@ -27,7 +54,19 @@ func add_team(team_key: String) -> void:
 		var team_color: Color = _select_color_for_actor()
 		teams[team_key] = {
 			"resources": INITIAL_RESOURCES.duplicate(),
-			"color": team_color
+			"color": team_color,
+			"costs": {
+				"core": INITIAL_CORE_COSTS.duplicate(),
+				"structures": {
+					"base": INITIAL_STRUCTURE_UPGRADE_COSTS.duplicate()
+				}
+			},
+			"purchased": {
+				"archer_barracks": 0,
+				"spearman_barracks": 0,
+				"stockpile": 0,
+				"worker": 0
+			}
 		}
 
 func get_teams() -> Array:
@@ -59,3 +98,15 @@ func _select_color_for_actor() -> Color:
 	var selected_color: Color = available_colors[index]
 	_selected_colors.append(selected_color)
 	return selected_color
+	
+func get_core_cost_for_team(team_key: String, id: String) -> Dictionary:
+	if not teams.get(team_key, {}).get("costs", {}).get("core", {}).get(id):
+		return {}
+	return teams.get(team_key).get("costs").get("core").get(id)
+
+func get_structure_upgrade_cost_for_team(team_key: String, structure_id: String, upgrade_id: String) -> Dictionary:
+	if not teams.get(team_key, {}).get("costs", {}).get("structures", {}).get(structure_id):
+		teams[team_key]["costs"]["structures"][structure_id] = INITIAL_STRUCTURE_UPGRADE_COSTS.duplicate()
+	if not teams.get(team_key, {}).get("costs", {}).get("structures", {}).get(structure_id, {}).get(upgrade_id):
+		return {}
+	return teams.get(team_key).get("costs").get("structures").get(structure_id).get(upgrade_id)

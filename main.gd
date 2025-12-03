@@ -312,7 +312,8 @@ func _show_tile_details(tile: Vector2i) -> void:
 		selection_highlight.show_edges(_tile_edge_segments([tile]))
 	var harvestable: bool = terrain_map.is_tile_harvestable(tile)
 	var marked: bool = terrain_map.is_tile_marked_for_harvest(tile)
-	info_panel.show_tile_info(type_name, passable, speed, tile, harvestable, marked, health, max_health)
+	var node_info: Dictionary = terrain_map.get_resource_node_info(tile)
+	info_panel.show_tile_info(type_name, passable, speed, tile, harvestable, marked, health, max_health, node_info)
 	if harvestable:
 		context_panel.set_context(context_panel.HARVESTING_CONTEXT, true)
 	_selected_tile = tile

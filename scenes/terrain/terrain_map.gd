@@ -642,6 +642,7 @@ func set_resource_node(tile: Vector2i, node_key: String) -> bool:
 	}
 	_resource_layer.set_cell(tile, source_id, Vector2i.ZERO)
 	_harvest_fail_cache.clear()
+	_update_astar_for_tile(tile)
 	return true
 
 func clear_resource_node(tile: Vector2i) -> void:
@@ -649,6 +650,7 @@ func clear_resource_node(tile: Vector2i) -> void:
 		_resource_layer.set_cell(tile, -1)
 	_resource_nodes.erase(_tile_key(tile))
 	_harvest_fail_cache.clear()
+	_update_astar_for_tile(tile)
 	
 func _set_tile_type(tile: Vector2i, type_name: String) -> void:
 	if not is_tile_within_bounds(tile):
@@ -760,6 +762,7 @@ func mark_tile_for_harvest(tile: Vector2i) -> bool:
 	_harvest_tags[key] = true
 	_set_harvest_marker(tile, true)
 	emit_signal("harvest_tags_changed", tile, true)
+	_update_astar_for_tile(tile)
 	return true
 
 func unmark_tile_for_harvest(tile: Vector2i) -> bool:
@@ -776,6 +779,7 @@ func _unmark_tile_internal(tile: Vector2i) -> void:
 	_harvest_tags.erase(key)
 	_set_harvest_marker(tile, false)
 	emit_signal("harvest_tags_changed", tile, false)
+	_update_astar_for_tile(tile)
 
 func _update_mark_after_harvest(tile: Vector2i, was_marked: bool) -> void:
 	if not was_marked:
@@ -992,6 +996,83 @@ func _is_tile_blocked(tile: Vector2i, blockers: Dictionary) -> bool:
 
 func _resource_node_at(tile: Vector2i) -> Dictionary:
 	return _resource_nodes.get(_tile_key(tile), {})
+
+func _resource_type_at_tile_only(tile: Vector2i) -> String:
+	if not is_tile_within_bounds(tile):
+		return ""
+	var cell: Dictionary = _grid[tile.y][tile.x]
+	if cell.is_empty():
+		return ""
+	var data: Dictionary = cell.get("data", {})
+	var res: String = data.get("resource_type", "")
+	var remaining: int = int(data.get("health", data.get("harvest_amount", 0)))
+	if res == "" or remaining <= 0:
+		return ""
+	return res
+
+func find_nearest_resource_tile(start_tile: Vector2i, max_radius: int) -> Variant:
+	if _cols <= 0 or _rows <= 0:
+		return null
+	var clamped: Vector2i = Vector2i(
+		clamp(start_tile.x, 0, _cols - 1),
+		clamp(start_tile.y, 0, _rows - 1)
+	)
+	var queue: Array = []
+	var visited: Dictionary = {}
+	queue.append(clamped)
+	visited[_tile_key(clamped)] = true
+	while not queue.is_empty():
+		var current: Vector2i = queue.pop_front()
+		if _resource_node_at(current).is_empty():
+			var res_type: String = _resource_type_at_tile_only(current)
+			if res_type != "":
+				return current
+		var dist: int = max(abs(current.x - clamped.x), abs(current.y - clamped.y))
+		if dist >= max_radius:
+			continue
+		for dir in _neighbor_dirs():
+			var next: Vector2i = current + dir
+			if not is_tile_within_bounds(next):
+				continue
+			var key: String = _tile_key(next)
+			if visited.has(key):
+				continue
+			visited[key] = true
+			queue.append(next)
+	return null
+
+func find_nearest_resource_node(start_tile: Vector2i, max_radius: int) -> Variant:
+	if _cols <= 0 or _rows <= 0:
+		return null
+	var clamped: Vector2i = Vector2i(
+		clamp(start_tile.x, 0, _cols - 1),
+		clamp(start_tile.y, 0, _rows - 1)
+	)
+	var queue: Array = []
+	var visited: Dictionary = {}
+	queue.append(clamped)
+	visited[_tile_key(clamped)] = true
+	while not queue.is_empty():
+		var current: Vector2i = queue.pop_front()
+		var node: Dictionary = _resource_node_at(current)
+		if not node.is_empty() and int(node.get("health", 0)) > 0:
+			return current
+		var dist: int = max(abs(current.x - clamped.x), abs(current.y - clamped.y))
+		if dist >= max_radius:
+			continue
+		for dir in _neighbor_dirs():
+			var next: Vector2i = current + dir
+			if not is_tile_within_bounds(next):
+				continue
+			var key: String = _tile_key(next)
+			if visited.has(key):
+				continue
+			visited[key] = true
+			queue.append(next)
+	return null
+
+func get_resource_node_info(tile: Vector2i) -> Dictionary:
+	return _resource_node_at(tile)
 
 func _count_resource_tiles(center: Vector2i, radius: int, resource_type: String) -> int:
 	var count: int = 0

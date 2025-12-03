@@ -26,13 +26,20 @@ func _clear_tile_selection() -> void:
 	_selected_tile = Vector2i(-1, -1)
 	_selected_tile_count = 0
 
-func show_tile_info(type_name: String, passable: bool, speed: float, tile_coords: Vector2i, can_harvest: bool, is_marked: bool, health: int, max_health: int) -> void:
+func show_tile_info(type_name: String, passable: bool, speed: float, tile_coords: Vector2i, can_harvest: bool, is_marked: bool, health: int, max_health: int, node_info: Dictionary = {}) -> void:
 	var pretty: String = _format_tile_name(type_name)
 	_title_label.text = pretty
 	var passable_text = "Pathing: %s" % "Passable" if passable else "Impassable"
 	var speed_text = "Speed: %.2fx" % speed
 	var health_text = "Health: %d/%d" % [health, max_health]
-	_description_label.text = "%s\n%s\n%s" % [passable_text, speed_text, health_text]
+	var desc: Array[String] = [passable_text, speed_text, health_text]
+	if not node_info.is_empty():
+		var node_type: String = _format_tile_name(node_info.get("node_key", ""))
+		var node_res: String = node_info.get("resource_type", "")
+		var node_health: int = int(node_info.get("health", 0))
+		var node_amount: int = int(node_info.get("amount", 0))
+		desc.append("Resource Node: %s (%s %d/%d)" % [node_type, node_res, node_health, node_amount])
+	_description_label.text = "\n".join(desc)
 	_selected_tile = tile_coords
 	_selected_tile_count = 1
 	selection_can_harvest = can_harvest and not is_marked

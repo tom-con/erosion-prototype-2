@@ -291,7 +291,16 @@ func _try_acquire_resource(force: bool = false) -> bool:
 	if is_player:
 		target = _terrain_map.find_nearest_marked_tile(tile, search_radius_tiles)
 	if not (target is Vector2i):
-		target = _terrain_map.find_nearest_harvestable_tile(tile, search_radius_tiles)
+		var tile_target: Variant = _terrain_map.find_nearest_resource_tile(tile, search_radius_tiles)
+		var node_target: Variant = _terrain_map.find_nearest_resource_node(tile, search_radius_tiles)
+		if tile_target is Vector2i and node_target is Vector2i:
+			var tile_dist: int = max(abs(tile_target.x - tile.x), abs(tile_target.y - tile.y))
+			var node_dist: int = max(abs(node_target.x - tile.x), abs(node_target.y - tile.y))
+			target = tile_target if tile_dist <= node_dist else node_target
+		elif tile_target is Vector2i:
+			target = tile_target
+		elif node_target is Vector2i:
+			target = node_target
 	if target is Vector2i:
 		if not force and _target_tile == target and _state == STATE_MOVING_TO_RESOURCE:
 			return true
