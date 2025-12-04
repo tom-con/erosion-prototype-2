@@ -2,6 +2,7 @@ extends Node2D
 
 @export var player_count: int = 2
 @export var base_scene: PackedScene = preload("res://scenes/buildings/base/Base.tscn")
+@export var stockpile_scene: PackedScene = preload("res://scenes/buildings/stockpile/Stockpile.tscn")
 @export var map_edge_buffer_tiles: int = 2
 @export var resource_node_radius: int = 10
 
@@ -14,20 +15,32 @@ extends Node2D
 @onready var player_panel: PlayerPanel = get_node("CanvasLayer/PlayerPanel")
 @onready var selection_highlight: SelectionHighlight = $SelectionHighlight
 @onready var game: Node = get_node_or_null("/root/Game")
+@onready var _images: ImageLibrary = get_node("/root/ImageLibrary")
 
+
+
+# --- Seletion Mode ---
 const TILE_REFRESH_INTERVAL: float = 0.25
+const DRAG_MIN_DISTANCE: float = 8.0
 var _selected_tile: Vector2i = Vector2i(-1, -1)
 var _selected_tiles: Array[Vector2i] = []
 var _tile_refresh_elapsed: float = 0.0
-
-var _is_placing_building: bool = false
-
-const DRAG_MIN_DISTANCE: float = 8.0
 var _is_dragging: bool = false
 var _drag_start_screen: Vector2 = Vector2.ZERO
 var _drag_start_world: Vector2 = Vector2.ZERO
 var _drag_current_world: Vector2 = Vector2.ZERO
 
+# --- Placement/Building Mode ---
+var _build_defs: Dictionary = {}
+var _is_placing_building: bool = false
+var _placement_id: String = ""
+var _placement_preview: Node2D = null
+var _placement_footprint: Vector2i = Vector2i.ONE
+var _placement_origin: Vector2i = Vector2i.ZERO
+var _placement_center: Vector2 = Vector2.ZERO
+var _placement_valid: bool = false
+
+# --- Team Data ---
 var _team_keys: PackedStringArray = []
 var _bases: Array[BaseBuilding] = []
 
@@ -35,6 +48,7 @@ func _ready() -> void:
 	set_process_input(true)
 	set_process(true)
 	_team_keys = game.initialize_players(player_count)
+	_make_build_defs()
 	call_deferred("_initialize_world")
 	
 func _process(delta: float) -> void:
@@ -62,23 +76,23 @@ func _initialize_world() -> void:
 	context_panel.mark_tiles_for_harvest.connect(_mark_tiles_for_harvest)
 	context_panel.unmark_tiles_for_harvest.connect(_unmark_tiles_for_harvest)
 	context_panel.worker_purchased.connect(_spawn_worker)
+	context_panel.build_requested.connect(_on_build_requested)
 	
 	
 func _input(event: InputEvent) -> void:
 	if _is_placing_building:
-		print("PLACING BUILDING")
-		#if event is InputEventMouseMotion:
-			#_update_placement_preview()
-		#elif event is InputEventMouseButton:
-			#var mb: InputEventMouseButton = event
-			#if not mb.pressed:
-				#return
-			#if mb.button_index == MOUSE_BUTTON_LEFT:
-				#if _is_mouse_over_ui(mb.position):
-					#return
-				#_try_place_building()
-			#if mb.button_index == MOUSE_BUTTON_RIGHT:
-				#_cancel_build_mode()
+		if event is InputEventMouseMotion:
+			_update_placement_preview()
+		elif event is InputEventMouseButton:
+			var mb: InputEventMouseButton = event
+			if not mb.pressed:
+				return
+			if mb.button_index == MOUSE_BUTTON_LEFT:
+				if _is_mouse_over_ui(mb.position):
+					return
+				_try_place_building()
+			if mb.button_index == MOUSE_BUTTON_RIGHT:
+				_cancel_build_mode()
 		return
 	if event is InputEventMouseButton:
 		var mb: InputEventMouseButton = event
@@ -583,3 +597,101 @@ func _spawn_worker(team_key: String) -> void:
 			continue
 		if b.team_id == team_key:
 			b.spawn_worker()
+
+func _make_build_defs() -> void:
+	var defs: Dictionary = {}
+	for def in game.BUILDING_DEFINITIONS:
+		var copy: Dictionary = def.duplicate(true)
+		var id: String = copy.get("id", "")
+		if id == "":
+			continue
+		match id:
+			"stockpile":
+				copy["scene"] = stockpile_scene
+		defs[id] = copy
+	_build_defs = defs
+
+func _on_build_requested(structure_id: String) -> void:
+	print(structure_id)
+	print(_build_defs)
+	var def: Dictionary = _build_defs.get(structure_id, {})
+	if def.is_empty():
+		print("[Build] Unknown build id %s" % structure_id)
+		return
+	_start_build_mode(structure_id, def)
+	
+func _cancel_build_mode() -> void:
+	_is_placing_building = false
+	_placement_id = ""
+	_placement_footprint = Vector2i.ONE
+	_placement_origin = Vector2i.ZERO
+	_placement_center = Vector2i.ZERO
+	_placement_valid = false
+	if is_instance_valid(_placement_preview):
+		_placement_preview.queue_free()
+	_placement_preview = null
+	
+func _start_build_mode(structure_id: String, def: Dictionary) -> void:
+	_cancel_build_mode()
+	_is_dragging = false
+	_is_placing_building = true
+	_placement_id = structure_id
+	_placement_footprint = def.get("footprint", Vector2i.ONE)
+	_placement_preview = _create_preview(def)
+	if selection_highlight:
+		selection_highlight.hide_highlight()
+	_update_placement_preview()
+	
+func _create_preview(def: Dictionary) -> Node2D:
+	var node: Node2D = Node2D.new()
+	var sprite: Sprite2D = Sprite2D.new()
+	sprite.texture = _images.get_building(def.get("icon", ""))
+	sprite.modulate = Color(0, 1, 0, 0.4)
+	sprite.name = "Sprite2D"
+	node.add_child(sprite)
+	add_child(node)
+	return node
+	
+func _update_placement_preview() -> void:
+	if not _is_placing_building or terrain_map == null or _placement_id == "":
+		return
+	var def: Dictionary = _build_defs.get(_placement_id, {})
+	if def.is_empty():
+		return
+	var mouse_world: Vector2 = camera.get_global_mouse_position()
+	var snap: Dictionary = terrain_map.snap_building_to_grid(mouse_world, _placement_footprint)
+	_placement_origin = snap.get("origin_tile", Vector2i.ZERO)
+	_placement_center = snap.get("center_world", mouse_world)
+	_placement_valid = terrain_map.can_place_building(_placement_origin, _placement_footprint)
+	if _placement_preview:
+		_placement_preview.global_position = _placement_center
+		var tint: Color = Color(0, 1, 0, 0.45) if _placement_valid else Color(1, 0, 0, 0.45)
+		_placement_preview.get_node("Sprite2D").modulate = tint
+
+func _try_place_building() -> void:
+	if not _is_placing_building:
+		return
+	var def: Dictionary = _build_defs.get(_placement_id, {})
+	if def.is_empty():
+		return
+	if not _placement_valid:
+		print("[Build] Invalid placement at %s" % str(_placement_origin))
+		return
+	var purchased: bool = game.purchase_core_for_team("player", _placement_id)
+	if not purchased:
+		return
+	var scene: PackedScene = def.get("scene", null)
+	if scene == null:
+		print("[Build] No scene for %s" % _placement_id)
+		return
+	var node: Node = scene.instantiate()
+	if node is Node2D:
+		node.global_position = _placement_center
+	if "is_player" in node:
+		node.is_player = true
+	if "team_id" in node:
+		node.team_id = "player"
+	add_child(node)
+	_register_building_in_terrain(node, _placement_origin, _placement_footprint)
+	_cancel_build_mode()
+	

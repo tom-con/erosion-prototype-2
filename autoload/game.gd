@@ -15,6 +15,29 @@ const INITIAL_RESOURCES: Dictionary = {
 	"iron": 0
 }
 
+const BUILDING_DEFINITIONS: Array[Dictionary] = [
+	{
+		"id": "archer_barracks",
+		"footprint": Vector2i(3, 3),
+		"icon": "archer_barracks"
+	},
+	{
+		"id": "farm",
+		"footprint": Vector2i(2, 2),
+		"icon": "farm"
+	},
+	{
+		"id": "spearman_barracks",
+		"footprint": Vector2i(3, 3),
+		"icon": "spearman_barracks"
+	},
+	{
+		"id": "stockpile",
+		"footprint": Vector2i(1, 1),
+		"icon": "stockpile"
+	}
+]
+
 const INITIAL_CORE_COSTS: Dictionary = {
 	"archer_barracks": {
 		"wood": 2000,

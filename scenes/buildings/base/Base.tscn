@@ -1,7 +1,6 @@
-[gd_scene load_steps=6 format=3 uid="uid://d4015fhkch20"]
+[gd_scene load_steps=5 format=3 uid="uid://d4015fhkch20"]
 
 [ext_resource type="Script" uid="uid://vpecu0lu38tb" path="res://scenes/buildings/base/base.gd" id="1_d43s4"]
-[ext_resource type="Texture2D" uid="uid://bvd4pvv1hc2jd" path="res://scenes/buildings/base/base.png" id="2_g5aj6"]
 [ext_resource type="Shader" uid="uid://0p8gnythujl1" path="res://scenes/vfx/shaders/team_color.gdshader" id="2_raf2q"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_x8716"]
@@ -16,7 +15,6 @@ script = ExtResource("1_d43s4")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 material = SubResource("ShaderMaterial_x8716")
-texture = ExtResource("2_g5aj6")
 
 [node name="StaticBody2D" type="StaticBody2D" parent="."]
 

@@ -28,6 +28,7 @@ var _worker_scene: PackedScene = preload("res://scenes/automatons/worker.tscn")
 var shader: Shader = preload("res://scenes/vfx/shaders/team_color.gdshader")
 
 @onready var _game: Game = get_node("/root/Game")
+@onready var _images: ImageLibrary = get_node("/root/ImageLibrary")
 @onready var _collision_shape: CollisionShape2D = get_node("StaticBody2D/CollisionShape2D")
 @onready var _sprite: Sprite2D = $Sprite2D
 @onready var _terrain_map: TerrainMap = _find_terrain_map()
@@ -48,13 +49,19 @@ func _ready() -> void:
 	add_to_group("buildings")
 	add_to_group("dropoffs")
 	health = max_health
-	_apply_team_color()
+	_apply_sprite()
 	_apply_tile_scaling()
 	_spawn_initial_workers()
-	
+
+func _apply_sprite() -> void:
+	if not _images.has_building("base"):
+		print("Missing base texture in Image Library")
+		return
+	_sprite.texture = _images.get_building("base")
+	_apply_team_color()
+
 func _apply_team_color() -> void:
 	var game_team_color: Color = _game.get_team_color(team_id)
-	print(game_team_color)
 	var settable_team_color: Color = game_team_color if game_team_color else team_color
 	if _sprite and _sprite.material:
 		_sprite.material = ShaderMaterial.new()

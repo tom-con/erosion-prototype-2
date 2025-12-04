@@ -4,6 +4,7 @@ class_name ContextPanel
 signal mark_tiles_for_harvest()
 signal unmark_tiles_for_harvest()
 signal worker_purchased(team_key: String)
+signal build_requested(structure_id: String)
 
 var _cost_label_scene: PackedScene = preload("res://scenes/ui/elements/cost_label.tscn")
 
@@ -144,14 +145,14 @@ func _unmark_selected_for_harvest() -> void:
 	emit_signal("unmark_tiles_for_harvest")
 	
 func _try_core_purchase(id: String) -> void:
-	var purchased: bool = _game.purchase_core_for_team("player", id)
-	
-	if not purchased:
-		return
-		
 	match id:
 		"worker":
+			var purchased: bool = _game.purchase_core_for_team("player", id)
+			if not purchased:
+				return
 			emit_signal("worker_purchased", "player")
+		"stockpile":
+			emit_signal("build_requested", "stockpile")
 	
 
 func set_context(context: String, structure_id: String = "", force_open: bool = false) -> void:

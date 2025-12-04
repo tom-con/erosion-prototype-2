@@ -1241,3 +1241,29 @@ func _update_astar_for_rect(origin: Vector2i, size: Vector2i) -> void:
 func _notify_tiles_changed(tile: Vector2i = Vector2i(-1, -1)) -> void:
 	emit_signal("tile_changed", tile)
 	_update_astar_for_tile(tile)
+
+func snap_building_to_grid(world_position: Vector2, footprint: Vector2i) -> Dictionary:
+	var center_tile: Vector2i = get_tile_coords(world_position)
+	var origin: Vector2i = center_tile - Vector2i(int(floor((footprint.x - 1) * 0.5)),int(floor((footprint.y - 1) * 0.5)))
+	var rect: Rect2 = tiles_to_world_rect(origin, footprint)
+	var center_world: Vector2 = rect.get_center()
+	return {
+		"origin_tile": origin,
+		"center_world": center_world
+	}
+
+func can_place_building(origin_tile: Vector2i, footprint: Vector2i) -> bool:
+	if footprint.x <= 0 or footprint.y <= 0:
+		return false
+	var end_x: int = origin_tile.x + footprint.x
+	var end_y: int = origin_tile.y + footprint.y
+	for y in range(origin_tile.y, end_y):
+		for x in range(origin_tile.x, end_x):
+			var tile: Vector2i = Vector2i(x, y)
+			if not is_tile_within_bounds(tile):
+				return false
+			if not is_tile_passable(tile):
+				return false
+			if _building_blockers.has(_tile_key(tile)):
+				return false
+	return true
