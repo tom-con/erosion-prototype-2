@@ -4,25 +4,19 @@
 [ext_resource type="Script" uid="uid://ukfia2yegsgr" path="res://scenes/ui/elements/cost_label.gd" id="2_nkndc"]
 
 [node name="CostLabel" type="HBoxContainer"]
-anchors_preset = 8
+anchors_preset = 5
 anchor_left = 0.5
-anchor_top = 0.5
 anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -48.0
-offset_top = -10.0
-offset_right = 52.0
-offset_bottom = 24.0
+offset_left = -50.0
+offset_right = 50.0
+offset_bottom = 34.0
 grow_horizontal = 2
-grow_vertical = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
 theme = ExtResource("1_s8yan")
 script = ExtResource("2_nkndc")
 
 [node name="TextureRect" type="TextureRect" parent="."]
 layout_mode = 2
-size_flags_horizontal = 3
 stretch_mode = 5
 
 [node name="Label" type="Label" parent="."]

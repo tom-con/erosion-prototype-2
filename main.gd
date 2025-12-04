@@ -59,6 +59,7 @@ func _initialize_world() -> void:
 		_focus_camera_on_player_base()
 	context_panel.mark_tiles_for_harvest.connect(_mark_tiles_for_harvest)
 	context_panel.unmark_tiles_for_harvest.connect(_unmark_tiles_for_harvest)
+	context_panel.worker_purchased.connect(_spawn_worker)
 	
 	
 func _input(event: InputEvent) -> void:
@@ -315,7 +316,7 @@ func _show_tile_details(tile: Vector2i) -> void:
 	var node_info: Dictionary = terrain_map.get_resource_node_info(tile)
 	info_panel.show_tile_info(type_name, passable, speed, tile, harvestable, marked, health, max_health, node_info)
 	if harvestable:
-		context_panel.set_context(context_panel.HARVESTING_CONTEXT, true)
+		context_panel.set_context(context_panel.HARVESTING_CONTEXT, "", true)
 	_selected_tile = tile
 	_selected_tiles = [tile]
 	_reset_tile_refresh()
@@ -388,7 +389,7 @@ func _apply_multi_tile_selection(tiles: Array[Vector2i]) -> void:
 	if info_panel:
 		info_panel.show_tiles_info(tiles.size(), harvestable_count, marked_count, markable_count, tiles[0])
 	if harvestable_count > 0:
-		context_panel.set_context(context_panel.HARVESTING_CONTEXT, true)
+		context_panel.set_context(context_panel.HARVESTING_CONTEXT, "", true)
 	_reset_tile_refresh()
 
 func _count_harvestable(tiles: Array[Vector2i]) -> int:
@@ -443,7 +444,7 @@ func _select_structure_at(world_position: Vector2) -> bool:
 				var max_hp: int = int(max_hp_val) if max_hp_val != null else 0
 				info_panel.show_structure_info("Base", hp, max_hp, _owner_label(building))
 				if building.is_player:
-					context_panel.set_context(context_panel.BASE_CONTEXT)
+					context_panel.set_context(context_panel.BASE_CONTEXT, "base")
 			#elif building is SpearmanBarracks:
 				#var hp_val: Variant = building.get("health") if building.has_method("get") else 0
 				#var max_hp_val: Variant = building.get("max_health") if building.has_method("get") else 0
@@ -572,3 +573,13 @@ func _mark_tiles_for_harvest() -> void:
 func _unmark_tiles_for_harvest() -> void:
 	for tile in _selected_tiles:
 		terrain_map.unmark_tile_for_harvest(tile)
+
+func _spawn_worker(team_key: String) -> void:
+	var bases: Array = get_tree().get_nodes_in_group("bases")
+	
+	for b in bases:
+		if not b is BaseBuilding:
+			print("Invalid Base detected, check bases group")
+			continue
+		if b.team_id == team_key:
+			b.spawn_worker()

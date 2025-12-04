@@ -34,5 +34,6 @@ map_size = "large"
 
 [node name="RtsCamera" parent="." instance=ExtResource("2_uu6xs")]
 position = Vector2(960, 539)
+zoom_step = 0.5
 
 [node name="SelectionHighlight" parent="." instance=ExtResource("8_trn2v")]

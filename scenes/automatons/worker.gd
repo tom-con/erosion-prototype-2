@@ -3,7 +3,7 @@ class_name Worker
 
 @export var move_speed: float = 70.0
 @export var resource_arrive_distance: float = 10.0
-@export var deposit_distance: float = 10.0
+@export var deposit_distance: float = 5.0
 @export var gather_duration: float = 2.25
 @export var search_radius_tiles: int = 40
 @export var harvest_resources: PackedStringArray = PackedStringArray(["wood", "stone", "food", "iron"])

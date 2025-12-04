@@ -77,6 +77,16 @@ func _spawn_initial_workers() -> void:
 		worker.configure_worker(self, team_id, team_color, is_player)
 		_add_to_world(worker)
 		print("[Base] Spawned worker %d for %s at %s" % [index, team_id, str(worker.global_position)])
+		
+func spawn_worker() -> void:
+	if _worker_scene == null:
+		print("[Base] %s no worker; skipping worker" % name)
+		return
+	var worker: Worker = _worker_scene.instantiate()
+	worker.global_position = $SpawnPoint.global_position
+	worker.configure_worker(self, team_id, team_color, is_player)
+	_add_to_world(worker)
+	print("[Base] Spawned worker for %s at %s" % [team_id, str(worker.global_position)])
 
 func _apply_team_color() -> void:
 	if _sprite and _sprite.material:

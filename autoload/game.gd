@@ -1,6 +1,7 @@
 extends Node
 
 signal player_resources_changed(resources: Dictionary)
+signal player_costs_changed()
 
 var time_elapsed: float = 0.0
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
@@ -56,9 +57,9 @@ func add_team(team_key: String) -> void:
 			"resources": INITIAL_RESOURCES.duplicate(),
 			"color": team_color,
 			"costs": {
-				"core": INITIAL_CORE_COSTS.duplicate(),
+				"core": INITIAL_CORE_COSTS.duplicate(true),
 				"structures": {
-					"base": INITIAL_STRUCTURE_UPGRADE_COSTS.duplicate()
+					"base": INITIAL_STRUCTURE_UPGRADE_COSTS.duplicate(true)
 				}
 			},
 			"purchased": {
@@ -110,3 +111,31 @@ func get_structure_upgrade_cost_for_team(team_key: String, structure_id: String,
 	if not teams.get(team_key, {}).get("costs", {}).get("structures", {}).get(structure_id, {}).get(upgrade_id):
 		return {}
 	return teams.get(team_key).get("costs").get("structures").get(structure_id).get(upgrade_id)
+
+func can_afford_core_for_team(team_key: String, id: String) -> bool:
+	if not teams.get(team_key):
+		return false
+	var resource_pool: Dictionary = get_resource_pool_for_team_id(team_key)
+	var cost: Dictionary = get_core_cost_for_team(team_key, id)
+	
+	for r in cost.keys():
+		if resource_pool.get(r) < cost.get(r):
+			return false
+	return true
+
+func purchase_core_for_team(team_key: String, id: String) -> bool:
+	if not can_afford_core_for_team(team_key, id):
+		return false
+	
+	var resource_pool: Dictionary = get_resource_pool_for_team_id(team_key)
+	var cost: Dictionary = get_core_cost_for_team(team_key, id)
+	
+	for r in cost.keys():
+		resource_pool[r] = resource_pool[r] - cost.get(r)
+		cost[r] = cost[r] + 100
+	
+	emit_signal("player_costs_changed")
+	emit_signal("player_resources_changed", resource_pool)
+	return true
+		
+	
