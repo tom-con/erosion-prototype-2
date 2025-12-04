@@ -49,6 +49,18 @@ var building_actions: Array[Dictionary] = [
 		},
 		"press_signal": ""
 	},
+		{
+		"id": "farm",
+		"label": "Farm",
+		"description": "A structure that generates food",
+		"cost_type": "core",
+		"icon": {
+			"base": "farm_icon",
+			"disabled": "farm_disabled_icon",
+			"hover": "farm_highlight_icon"
+		},
+		"press_signal": ""
+	},
 	{
 		"id": "spearman_barracks",
 		"label": "Spear",
@@ -166,13 +178,14 @@ func set_context(context: String, structure_id: String = "", force_open: bool = 
 	for e in entries:
 		var id: String = e.get("id")
 		if _entries_cache.has(id):
-			var cached: Dictionary = _entries_cache.get(id)
+			var cached: Dictionary = _entries_cache.get(id)	
 			cached.get("button").show()
 			_current_entries[id] = cached
 		else:
 			var created: Dictionary = _add_entry(e)
 			_grid.add_child(created.get("button"))
 			_current_entries[id] = created
+	_refresh_entries_cost()
 	last_action = context
 			
 func _clear_entries() -> void:
@@ -209,7 +222,6 @@ func _refresh_entries_cost(_player_resources: Dictionary = {}) -> void:
 		var button: TextureButton = entry.get("button_node") if entry.has("button_node") else entry.get("button").get_node_or_null("TextureButton")
 		if button:
 			button.disabled = not can_afford
-		print(entry.get("button").get_children())
 		_update_cost_labels(entry.get("button").get_node("CostContainer"), cost_info)
 			
 

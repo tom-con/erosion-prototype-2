@@ -21,6 +21,10 @@ const INITIAL_CORE_COSTS: Dictionary = {
 		"stone":1200,
 		"food": 400	
 	},
+	"farm": {
+		"wood": 600,
+		"stone":300
+	},
 	"spearman_barracks": {
 		"wood": 800,
 		"stone": 800,
@@ -66,7 +70,8 @@ func add_team(team_key: String) -> void:
 				"archer_barracks": 0,
 				"spearman_barracks": 0,
 				"stockpile": 0,
-				"worker": 0
+				"worker": 0,
+				"farm": 0
 			}
 		}
 

@@ -45,6 +45,7 @@ var _path_index: int = 0
 var _path_goal_tile: Vector2i = Vector2i(-1, -1)
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
+# Runs when the worker enters the scene; sets up groups, RNG, and signals
 func _ready() -> void:
 	add_to_group("workers")
 	z_index = 5
@@ -53,6 +54,7 @@ func _ready() -> void:
 	if _terrain_map:
 		_terrain_map.harvest_tags_changed.connect(_on_harvest_tags_changed)
 
+# Called after instantiation to assign ownership, team color, and home base
 func configure_worker(base: BaseBuilding, new_team_id: String, color: Color, player_owned: bool) -> void:
 	home_base = base
 	team_id = new_team_id
@@ -60,6 +62,7 @@ func configure_worker(base: BaseBuilding, new_team_id: String, color: Color, pla
 	team_color = color
 	_apply_team_color()
 	
+# Main per-physics tick; drives the worker state machine and movement
 func _physics_process(delta: float) -> void:
 	_exception_refresh_timer -= delta
 	_search_cooldown = max(_search_cooldown - delta, 0.0)
@@ -100,6 +103,7 @@ func _physics_process(delta: float) -> void:
 			if _move_along_path_to(_deposit_target_tile(), _deposit_arrive_threshold()):
 				_deposit_resource()
 
+# Chooses the correct animation for the current state without restarting unnecessarily
 func _resolve_animation() -> void:
 	var anim: AnimatedSprite2D = $AnimatedSprite2D
 	var current_anim: String = anim.get_animation()
@@ -127,6 +131,7 @@ func _resolve_animation() -> void:
 			if not is_playing:
 				anim.play("walk")
 
+# Follows the current AStar path toward a goal tile, rebuilding if needed
 func _move_along_path_to(goal_tile: Vector2i, arrive_distance: float) -> bool:
 	if goal_tile.x < 0 or goal_tile.y < 0:
 		velocity = Vector2.ZERO
@@ -135,6 +140,7 @@ func _move_along_path_to(goal_tile: Vector2i, arrive_distance: float) -> bool:
 		_build_path_to_tile(goal_tile)
 	return _follow_path(arrive_distance)
 
+# Finds a nearby passable tile to start pathing from if the worker stands on a blocked tile
 func _safe_origin_tile() -> Vector2i:
 	if not _terrain_map:
 		return Vector2i(-1, -1)
@@ -154,6 +160,7 @@ func _safe_origin_tile() -> Vector2i:
 					return candidate
 	return start
 
+# Builds an AStar path from the current tile to the goal tile
 func _build_path_to_tile(goal_tile: Vector2i) -> void:
 	_path = PackedVector2Array()
 	_path_index = 0
@@ -167,6 +174,7 @@ func _build_path_to_tile(goal_tile: Vector2i) -> void:
 	if _path.is_empty():
 		_path.append(_terrain_map.get_tile_center(goal_tile))
 
+# Steps through the path waypoints, moving until within the arrival threshold
 func _follow_path(arrive_distance: float) -> bool:
 	if _path.is_empty():
 		velocity = Vector2.ZERO
@@ -195,21 +203,23 @@ func _follow_path(arrive_distance: float) -> bool:
 	move_and_slide()
 	return false
 
-#TODO: WHAT THIS
+# Picks a passable tile near the target resource for pathing
 func _resource_path_tile() -> Vector2i:
-	if _terrain_map and _target_tile.x >= 0:
-		var neighbor: Vector2i = _find_passable_neighbor(_target_tile)
-		if neighbor.x >= 0:
-			return neighbor
-		return _target_tile
+	if not _terrain_map or _target_tile.x < 0:
+		return Vector2i(-1, -1)
+	var neighbor: Vector2i = _find_passable_neighbor(_target_tile)
+	if neighbor.x >= 0:
+		return neighbor
 	return Vector2i(-1, -1)
 
+# Converts the chosen resource tile into world coordinates
 func _resource_world_position() -> Vector2:
 	var tile: Vector2i = _resource_path_tile()
 	if _terrain_map and tile.x >= 0:
 		return _terrain_map.get_tile_center(tile)
 	return global_position
 	
+# Chooses the best tile to stand on when depositing at the nearest dropoff
 func _deposit_target_tile() -> Vector2i:
 	if not _terrain_map:
 		return Vector2i(-1, -1)
@@ -246,22 +256,26 @@ func _deposit_target_tile() -> Vector2i:
 		return tile
 	return Vector2i(-1, -1)
 
+# World position to reach for depositing
 func _deposit_target_position() -> Vector2:
 	var tile: Vector2i = _deposit_target_tile()
 	if _terrain_map and tile.x >= 0:
 		return _terrain_map.get_tile_center(tile)
 	return global_position
 	
+# How close the worker must be to deposit at the dropoff
 func _deposit_arrive_threshold() -> float:
 	var dropoff: Node = _nearest_dropoff()
 	if dropoff and dropoff.has_method("get_collision_radius"):
 		return deposit_distance + float(dropoff.get_collision_radius())
 	return deposit_distance
 	
+# Switches to returning state and builds the path to the dropoff
 func _start_returning() -> void:
 	_build_path_to_tile(_deposit_target_tile())
 	_state = STATE_RETURNING
 	
+# Finds the closest friendly dropoff building
 func _nearest_dropoff() -> Node:
 	var best: Node = null
 	var best_dist: float = INF
@@ -283,6 +297,7 @@ func _nearest_dropoff() -> Node:
 			best = node
 	return best
 	
+# Chooses the nearest marked or harvestable target (tile or node) and starts moving toward it
 func _try_acquire_resource(force: bool = false) -> bool:
 	if not _terrain_map:
 		return false
@@ -313,6 +328,7 @@ func _try_acquire_resource(force: bool = false) -> bool:
 		_start_returning()
 	return false
 
+# Handles harvest timer, collects resources, and decides whether to keep harvesting or return
 func _collect_resource() -> void:
 	if not _terrain_map or _target_tile.x < 0:
 		if _should_return_to_deposit():
@@ -345,6 +361,7 @@ func _collect_resource() -> void:
 	else:
 		_state = STATE_HARVESTING
 
+# Transfers backpack contents to the game, clears state, and immediately seeks a new task
 func _deposit_resource() -> void:
 	var has_game: bool = _game and _game.has_method("add_resources")
 	if has_game:
@@ -365,6 +382,7 @@ func _deposit_resource() -> void:
 	_state = STATE_IDLE
 	_try_acquire_resource(true)
 	
+# Resets backpack contents to zero
 func _empty_backpack() -> void:
 	_backpack = {
 	"wood": 0,
@@ -374,29 +392,35 @@ func _empty_backpack() -> void:
 }
 	
 
+# Sums all carried resources
 func _get_carried_amount() -> int:
 	var total: int = 0
 	for r in _backpack.keys():
 		total += _backpack[r]
 	return total
 
+# Adds a specific resource type to the backpack (creates warning if unknown)
 func _add_to_backpack(res_type: String, amt: int) -> void:
 	if not _backpack.has(res_type):
 		print("Invalid _add_to_backpack resource")
 	_backpack[res_type] = _backpack[res_type] + amt
 
+# How much space is left in the backpack
 func _remaining_capacity() -> int:
 	return backpack_capacity - _get_carried_amount()
 
+# Checks if the backpack is full
 func _should_return_to_deposit() -> bool:
 	return _get_carried_amount() >= backpack_capacity
 	
+# Searches the scene tree for the TerrainMap instance
 func _find_terrain_map() -> TerrainMap:
 	for node in get_tree().get_nodes_in_group("terrain_map"):
 		if node is TerrainMap:
 			return node
 	return null
 	
+# Applies the team color shader to this worker’s sprite
 func _apply_team_color() -> void:
 	if not team_color:
 		print("Worker invalid team color")
@@ -405,6 +429,7 @@ func _apply_team_color() -> void:
 	$AnimatedSprite2D.material.shader = TEAM_SHADER
 	$AnimatedSprite2D.material.set_shader_parameter("team_color", team_color)
 	
+# Returns any nearby passable tile around the given coordinate
 func _find_passable_neighbor(tile: Vector2i) -> Vector2i:
 	if not _terrain_map:
 		return Vector2i(-1, -1)
@@ -418,12 +443,15 @@ func _find_passable_neighbor(tile: Vector2i) -> Vector2i:
 		Vector2i(1, -1),
 		Vector2i(-1, 1)
 	]
+	var best: Vector2i = Vector2i(1, 0)
 	for offset in offsets:
 		var candidate: Vector2i = tile + offset
-		if _terrain_map.is_tile_passable(candidate):
-			return candidate
-	return Vector2i(-1, -1)
+		var is_closest = global_position.distance_to(_terrain_map.get_tile_center(candidate)) < global_position.distance_to(_terrain_map.get_tile_center(best))
+		if _terrain_map.is_tile_passable(candidate) and is_closest:
+			best = candidate
+	return best
 	
+# Adds collision exceptions so friendly units and workers don’t collide
 func _refresh_friendly_unit_exceptions() -> void:
 	if not is_inside_tree():
 		return
@@ -445,9 +473,11 @@ func _refresh_friendly_unit_exceptions() -> void:
 			add_collision_exception_with(worker)
 			worker.add_collision_exception_with(self)
 			
+# Adds a bit of randomness to stagger how often workers search for resources
 func _random_search_delay() -> float:
 	return SEARCH_COOLDOWN_BASE + _rng.randf() * SEARCH_COOLDOWN_JITTER
 
+# Reacts to harvest tag changes; player workers retarget when marks appear/disappear
 func _on_harvest_tags_changed(_tile: Vector2i, _is_marked: bool) -> void:
 	if not is_player:
 		return
