@@ -47,7 +47,7 @@ var building_actions: Array[Dictionary] = [
 			"disabled": "stockpile_disabled_icon",
 			"hover": "stockpile_highlight_icon"
 		},
-		"press_signal": ""
+		"press_signal": Callable(self, "_try_core_purchase").bind("stockpile")
 	},
 		{
 		"id": "farm",
@@ -59,7 +59,7 @@ var building_actions: Array[Dictionary] = [
 			"disabled": "farm_disabled_icon",
 			"hover": "farm_highlight_icon"
 		},
-		"press_signal": ""
+		"press_signal": Callable(self, "_try_core_purchase").bind("farm")
 	},
 	{
 		"id": "spearman_barracks",
@@ -71,7 +71,7 @@ var building_actions: Array[Dictionary] = [
 			"disabled": "spear_disabled_icon",
 			"hover": "spear_highlight_icon"
 		},
-		"press_signal": ""
+		"press_signal": Callable(self, "_try_core_purchase").bind("spearman_barracks")
 	},
 		{
 		"id": "archer_barracks",
@@ -83,7 +83,7 @@ var building_actions: Array[Dictionary] = [
 			"disabled": "bow_disabled_icon",
 			"hover": "bow_highlight_icon"
 		},
-		"press_signal": ""
+		"press_signal": Callable(self, "_try_core_purchase").bind("archer_barracks")
 	},
 ]
 

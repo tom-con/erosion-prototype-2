@@ -28,11 +28,13 @@ var _drag_start_screen: Vector2 = Vector2.ZERO
 var _drag_start_world: Vector2 = Vector2.ZERO
 var _drag_current_world: Vector2 = Vector2.ZERO
 
+var _team_keys: PackedStringArray = []
 var _bases: Array[BaseBuilding] = []
 
 func _ready() -> void:
 	set_process_input(true)
 	set_process(true)
+	_team_keys = game.initialize_players(player_count)
 	call_deferred("_initialize_world")
 	
 func _process(delta: float) -> void:
@@ -52,7 +54,7 @@ func _refresh_selected_tile_info() -> void:
 func _initialize_world() -> void:
 	if terrain_map:
 		_update_camera_bounds()
-		_spawn_bases()
+		_spawn_bases(_team_keys)
 		_place_resource_nodes()
 		resource_panel.initialize_resources()
 		player_panel.draw_players()
@@ -146,7 +148,7 @@ func _handle_click_at(world_pos: Vector2) -> void:
 		return
 	_select_tile_at(world_pos)
 
-func _spawn_bases() -> void:
+func _spawn_bases(team_keys: PackedStringArray) -> void:
 	if base_scene == null or terrain_map == null:
 		return
 	if not get_tree():
@@ -171,15 +173,13 @@ func _spawn_bases() -> void:
 		return
 	var spawn_count: int = max(player_count, 1)
 	var placed: Array[Rect2i] = []
-	for index in range(spawn_count):
-		var team_id: String = "player" if index == 0 else "enemy_%d" % index 
+	for index in range(team_keys.size()):
+		var team_key: String = team_keys[index]
 		var base_node: BaseBuilding = base_scene.instantiate() as BaseBuilding
 		if base_node == null:
 			continue
-		base_node.is_player = index == 0
-		base_node.team_id = team_id
-		game.add_team(team_id)
-		base_node.team_color = game.get_team_color(base_node.team_id)
+		base_node.is_player = team_key == "player"
+		base_node.team_id = team_key
 		var footprint: Vector2i = Vector2i(max(base_node.width_in_tiles, 1), max(base_node.height_in_tiles, 1))
 		var origin: Vector2i = _base_origin_for_index(index, spawn_count, footprint, grid_size, placed)
 		if origin.x < 0:

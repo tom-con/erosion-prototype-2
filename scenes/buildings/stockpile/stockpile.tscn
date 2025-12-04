@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://d0avfswl2odmg"]
+
+[ext_resource type="Script" uid="uid://b8lxhkq7o54pi" path="res://scenes/buildings/stockpile/stockpile.gd" id="1_a2vky"]
+
+[node name="Stockpile" type="Node2D"]
+script = ExtResource("1_a2vky")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]

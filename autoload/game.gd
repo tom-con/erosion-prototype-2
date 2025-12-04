@@ -54,7 +54,15 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	time_elapsed += delta
 
-func add_team(team_key: String) -> void:
+func initialize_players(count: int) -> PackedStringArray:
+	var team_keys: PackedStringArray = []
+	for i in range(count):
+		var team_key = "player" if i == 0 else "enemy_%d" % i
+		_add_team(team_key)
+		team_keys.append(team_key)
+	return team_keys
+
+func _add_team(team_key: String) -> void:
 	if not teams.has(team_key):
 		var team_color: Color = _select_color_for_actor()
 		teams[team_key] = {

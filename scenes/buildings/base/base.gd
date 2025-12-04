@@ -4,6 +4,7 @@ class_name BaseBuilding
 # --- Team config ---
 @export var is_player: bool = true
 @export var team_id: String = ""
+@export var team_color: Color = Color.WHITE
 
 # --- Placement Config ---
 @export var width_in_tiles = 8
@@ -24,7 +25,9 @@ var health: int
 @export var spawn_interval: float = 15.0
 
 var _worker_scene: PackedScene = preload("res://scenes/automatons/worker.tscn")
+var shader: Shader = preload("res://scenes/vfx/shaders/team_color.gdshader")
 
+@onready var _game: Game = get_node("/root/Game")
 @onready var _collision_shape: CollisionShape2D = get_node("StaticBody2D/CollisionShape2D")
 @onready var _sprite: Sprite2D = $Sprite2D
 @onready var _terrain_map: TerrainMap = _find_terrain_map()
@@ -33,23 +36,30 @@ var _worker_scene: PackedScene = preload("res://scenes/automatons/worker.tscn")
 # --- Internal State ---
 
 var _timer: float = 0.0
-var _base_max_health: int = 0
 var _base_spawn_interval: float = 0.0
-@export var team_color: Color = Color.WHITE
+
 
 func _ready() -> void:
+	team_id = team_id.strip_edges()
+	if team_id == "":
+		print("Bad base instantiation [team_id] not set")
+		return
 	add_to_group("bases")
 	add_to_group("buildings")
 	add_to_group("dropoffs")
 	health = max_health
-	
-	if team_id.strip_edges() == "":
-		team_id = _default_team_key()
-	team_color = _resolve_team_color()
 	_apply_team_color()
 	_apply_tile_scaling()
 	_spawn_initial_workers()
 	
+func _apply_team_color() -> void:
+	var game_team_color: Color = _game.get_team_color(team_id)
+	print(game_team_color)
+	var settable_team_color: Color = game_team_color if game_team_color else team_color
+	if _sprite and _sprite.material:
+		_sprite.material = ShaderMaterial.new()
+		_sprite.material.shader = shader
+		_sprite.material.set_shader_parameter("team_color", settable_team_color)
 
 func _find_terrain_map() -> TerrainMap:
 	for node in get_tree().get_nodes_in_group("terrain_map"):
@@ -57,15 +67,6 @@ func _find_terrain_map() -> TerrainMap:
 			return node
 	return null
 	
-func _default_team_key() -> String:
-	return "player" if is_player else "enemy"
-	
-func _resolve_team_color() -> Color:
-	var key: String = team_id.strip_edges() if team_id != "" else _default_team_key()
-	var game: Node = get_node_or_null("/root/Game")
-	if game and game.has_method("get_team_color"):
-		return game.get_team_color(key)
-	return Color.WHITE
 
 func _spawn_initial_workers() -> void:
 	if _worker_scene == null or initial_worker_count <= 0:
@@ -87,11 +88,6 @@ func spawn_worker() -> void:
 	worker.configure_worker(self, team_id, team_color, is_player)
 	_add_to_world(worker)
 	print("[Base] Spawned worker for %s at %s" % [team_id, str(worker.global_position)])
-
-func _apply_team_color() -> void:
-	if _sprite and _sprite.material:
-		_sprite.material = _sprite.material.duplicate()
-		_sprite.material.set_shader_parameter("team_color", team_color)
 
 func _apply_tile_scaling() -> void:
 	if _terrain_map == null:
