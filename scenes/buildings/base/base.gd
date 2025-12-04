@@ -29,7 +29,6 @@ var shader: Shader = preload("res://scenes/vfx/shaders/team_color.gdshader")
 
 @onready var _game: Game = get_node("/root/Game")
 @onready var _images: ImageLibrary = get_node("/root/ImageLibrary")
-@onready var _collision_shape: CollisionShape2D = get_node("StaticBody2D/CollisionShape2D")
 @onready var _sprite: Sprite2D = $Sprite2D
 @onready var _terrain_map: TerrainMap = _find_terrain_map()
 @onready var _collider_shape: CollisionShape2D = get_node("StaticBody2D/CollisionShape2D")
@@ -120,7 +119,7 @@ func get_collision_rect() -> Rect2:
 	return Rect2(global_position - Vector2(128, 128), Vector2(256, 256))
 	
 func get_collision_radius() -> float:
-	var rect_shape: RectangleShape2D = _collision_shape.shape as RectangleShape2D
+	var rect_shape: RectangleShape2D = _collider_shape.shape as RectangleShape2D
 	if rect_shape:
 		var sz: Vector2 = rect_shape.size
 		return 0.5 * Vector2(sz.x, sz.y).length()

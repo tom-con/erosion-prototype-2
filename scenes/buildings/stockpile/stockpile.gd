@@ -13,6 +13,7 @@ var team_color: Color = Color.WHITE
 var shader: Shader = preload("res://scenes/vfx/shaders/team_color.gdshader")
 
 @onready var _sprite: Sprite2D = $Sprite2D
+@onready var _collider_shape: CollisionShape2D = get_node("StaticBody2D/CollisionShape2D")
 @onready var _images: ImageLibrary = get_node("/root/ImageLibrary")
 @onready var _game: Node = get_node("/root/Game")
 
@@ -42,3 +43,16 @@ func _apply_team_color() -> void:
 		_sprite.material = ShaderMaterial.new()
 		_sprite.material.shader = shader
 		_sprite.material.set_shader_parameter("team_color", settable_team_color)
+		
+func get_collision_center() -> Vector2:
+	if _collider_shape and _collider_shape.is_inside_tree():
+		# CollisionShape2D is a Node2D; use its global_position for an accurate center
+		return _collider_shape.global_position
+	return global_position
+	
+func get_collision_radius() -> float:
+	var rect_shape: RectangleShape2D = _collider_shape.shape as RectangleShape2D
+	if rect_shape:
+		var sz: Vector2 = rect_shape.size
+		return 0.5 * Vector2(sz.x, sz.y).length()
+	return 32.0
