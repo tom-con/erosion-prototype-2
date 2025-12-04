@@ -394,6 +394,7 @@ func clear_impassable_in_rect(origin: Vector2i, size: Vector2i, new_type: String
 			_grid[y][x] = _make_cell(new_type)
 	_rebuild_blockers()
 	_populate_tilemap_region(origin, size)
+	_update_astar_for_rect(origin, size)
 	_notify_tiles_changed(origin)
 	
 func tiles_to_world_rect(origin: Vector2i, size: Vector2i) -> Rect2:
@@ -501,7 +502,7 @@ func _tile_from_key(key: String) -> Vector2i:
 	return Vector2i(int(parts[0]), int(parts[1]))
 
 func _neighbor_dirs() -> Array:
-	return [
+	var n_dirs: Array[Vector2i] = [
 		Vector2i(1, 0),
 		Vector2i(-1, 0),
 		Vector2i(0, 1),
@@ -511,6 +512,8 @@ func _neighbor_dirs() -> Array:
 		Vector2i(1, -1),
 		Vector2i(-1, 1)
 	]
+	n_dirs.shuffle()
+	return n_dirs
 	
 func _build_from_noise(cols: int, rows: int, rand_seed: int) -> void:
 	_cols = max(cols, 1)

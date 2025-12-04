@@ -233,8 +233,8 @@ func _deposit_target_tile() -> Vector2i:
 			var bottom_right: Vector2i = _terrain_map.get_tile_coords(rect.position + rect.size)
 			var best: Vector2i = Vector2i(-1, -1)
 			var best_dist: float = INF
-			for y in range(top_left.y, bottom_right.y + 1):
-				for x in range(top_left.x, bottom_right.x + 1):
+			for y in range(top_left.y - 1, bottom_right.y + 1):
+				for x in range(top_left.x - 1, bottom_right.x + 1):
 					# Only consider perimeter cells around the rectangle
 					var on_edge: bool = x == top_left.x or x == bottom_right.x or y == top_left.y or y == bottom_right.y
 					if not on_edge:
@@ -443,7 +443,8 @@ func _find_passable_neighbor(tile: Vector2i) -> Vector2i:
 		Vector2i(1, -1),
 		Vector2i(-1, 1)
 	]
-	var best: Vector2i = Vector2i(1, 0)
+	offsets.shuffle()
+	var best: Vector2i = offsets[0]
 	for offset in offsets:
 		var candidate: Vector2i = tile + offset
 		var is_closest = global_position.distance_to(_terrain_map.get_tile_center(candidate)) < global_position.distance_to(_terrain_map.get_tile_center(best))
